@@ -36,6 +36,7 @@ public class Usuario implements UserDetails {
     public Usuario(String dadosLogin, String dadosSenha) {
         this.login = dadosLogin;
         this.senha = dadosSenha;
+        this.role = Role.ROLE_USER;
     }
 
 

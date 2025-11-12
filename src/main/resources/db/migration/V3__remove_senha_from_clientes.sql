@@ -1,1 +1,1 @@
-ALTER TABLE clientes DROP COLUMN senha;
+ALTER TABLE clientes DROP COLUMN IF EXISTS senha;
