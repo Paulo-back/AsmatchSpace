@@ -1,0 +1,5 @@
+ALTER TABLE usuarios
+ADD COLUMN login VARCHAR(255);
+
+ALTER TABLE usuarios
+DROP COLUMN email;
