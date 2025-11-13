@@ -62,15 +62,14 @@ public class ClienteController {
         String role = authentication.getAuthorities().stream().findFirst().get().getAuthority(); // ROLE_USER ou ROLE_ADMIN
 
         // Se não for admin, só pode atualizar ele mesmo
-        if (!role.equals("ROLE_ADMIN") && !idLogado.equals(dados.id())) {
+        var cliente = repository.getReferenceById(dados.id());
+        if (!role.equals("ROLE_ADMIN") && !idLogado.equals(cliente.getUsuario().getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Você só pode atualizar seu próprio perfil.");
         }
 
+        cliente.atualizarInformacoes(dados);
 
-        var paciente = repository.getReferenceById(dados.id());
-        paciente.atualizarInformacoes(dados);
-
-        return ResponseEntity.ok(new DadosDetalhamentoCliente(paciente));
+        return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
     }
 
     @DeleteMapping("/inativar/{id}")
