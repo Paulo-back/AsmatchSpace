@@ -50,27 +50,63 @@ public class ClienteController {
         return ResponseEntity.created(uri).body(new DadosDetalhamentoCliente(cliente));
     }
 
+
+
     @PutMapping("/atualizar")
     @Transactional
     public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizarCliente dados, HttpServletRequest request) {
 
-
+        // Extrai ID do usuário logado
         String token = request.getHeader("Authorization").replace("Bearer ", "");
         Long idLogado = tokenService.getUserId(token);
 
+        // Obtém role (ROLE_USER ou ROLE_ADMIN)
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        String role = authentication.getAuthorities().stream().findFirst().get().getAuthority(); // ROLE_USER ou ROLE_ADMIN
+        String role = authentication.getAuthorities().stream().findFirst().get().getAuthority();
 
-        // Se não for admin, só pode atualizar ele mesmo
-        var cliente = repository.getReferenceById(dados.id());
-        if (!role.equals("ROLE_ADMIN") && !idLogado.equals(cliente.getUsuario().getId())) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Você só pode atualizar seu próprio perfil.");
+        Cliente cliente;
+
+        // ADMIN pode atualizar qualquer cliente (usando ID passado)
+        if (role.equals("ROLE_ADMIN")) {
+            cliente = repository.findById(dados.id())
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        }
+        // USER só pode atualizar o próprio cliente vinculado
+        else {
+            cliente = repository.findByUsuarioId(idLogado)
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
         }
 
+        // Atualiza os dados
         cliente.atualizarInformacoes(dados);
 
         return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
     }
+
+
+
+
+//    @PutMapping("/atualizar")
+//    @Transactional
+//    public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizarCliente dados, HttpServletRequest request) {
+//
+//
+//        String token = request.getHeader("Authorization").replace("Bearer ", "");
+//        Long idLogado = tokenService.getUserId(token);
+//
+//        var authentication = SecurityContextHolder.getContext().getAuthentication();
+//        String role = authentication.getAuthorities().stream().findFirst().get().getAuthority(); // ROLE_USER ou ROLE_ADMIN
+//
+//        // Se não for admin, só pode atualizar ele mesmo
+//        var cliente = repository.getReferenceById(dados.id());
+//        if (!role.equals("ROLE_ADMIN") && !idLogado.equals(cliente.getUsuario().getId())) {
+//            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Você só pode atualizar seu próprio perfil.");
+//        }
+//
+//        cliente.atualizarInformacoes(dados);
+//
+//        return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
+//    }
 
     @DeleteMapping("/inativar/{id}")
     @Transactional
