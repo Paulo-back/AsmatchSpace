@@ -45,14 +45,8 @@ public class Cliente {
         this.email = dados.email();
         this.telefone = dados.telefone();
         this.cpf = dados.cpf();
-        this.endereco = new Endereco(dados.endereco());
-        this.alergias = dados.alergias();
-        this.contatoEmergencia = dados.contatoEmergencia();
-//        this.senha = senhaCriptografada;
-        this.problema_respiratorio = dados.problema_respiratorio();
         this.idade = dados.idade();
         this.sexo = dados.sexo();
-        this.medicamentos = dados.medicamentos();
         this.usuario = usuario;
         this.ativo = true;
     }

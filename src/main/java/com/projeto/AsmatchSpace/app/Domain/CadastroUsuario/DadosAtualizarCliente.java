@@ -17,28 +17,3 @@ public record DadosAtualizarCliente(
     DadosEndereco endereco
             ){
 }
-
-
-
-//public record DadosAtualizacaoPaciente(
-//        Long id,
-//        String nome,
-//        String telefone,
-//        @Valid DadosEndereco endereco
-//) {
-//}
-
-
-//private String nome;
-//private String email;
-//private String cpf;
-//private String telefone;
-//private int idade;
-//private String sexo;
-//@Embedded
-//private Endereco endereco;
-//private String problema_respiratorio;//talvez transformar em um ENUM
-//private String medicamentos;
-//private String alergias;
-//private String contatoEmergencia;
-//private String senha;

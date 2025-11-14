@@ -13,22 +13,3 @@ public record DadosListagemClientes(
     }
 
 }
-//public record DadosListagemPaciente(Long id, String nome, String email, String cpf) {
-//    public DadosListagemPaciente(Paciente paciente) {
-//        this(paciente.getId(), paciente.getNome(), paciente.getEmail(), paciente.getCpf());
-//    }
-//}
-
-//private String nome;
-//private String email;
-//private String cpf;
-//private String telefone;
-//private int idade;
-//private String sexo;
-//@Embedded
-//private Endereco endereco;
-//private String problema_respiratorio;//talvez transformar em um ENUM
-//private String medicamentos;
-//private String alergias;
-//private String contatoEmergencia;
-//private Boolean ativo;

@@ -16,26 +16,8 @@ public record DadosCadastroCliente(
         @NotBlank String telefone,
         @NotBlank @Pattern(regexp = "\\d{3}\\.?\\d{3}\\.?\\d{3}\\-?\\d{2}") String cpf,
         @NotBlank String senha,
-        @NotNull @Valid DadosEndereco endereco,
-        String problema_respiratorio,
-        String medicamentos,
-        String alergias,
-        String contatoEmergencia,
-        Integer idade,
-        String sexo
-
+        @NotBlank String sexo,
+        @NotNull Integer idade
 
         ) {
 }
-
-
-//private int idade;
-//private String sexo;
-//@Embedded
-//private Endereco endereco;
-//private String Problema_respiratorio;//talvez transformar em um ENUM
-//private String medicamentos;
-//private String alergias;
-//private String contatoEmergencia;
-//private String senha;
-
