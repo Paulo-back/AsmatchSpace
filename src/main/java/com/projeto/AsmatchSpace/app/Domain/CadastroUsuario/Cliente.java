@@ -49,6 +49,13 @@ public class Cliente {
         this.sexo = dados.sexo();
         this.usuario = usuario;
         this.ativo = true;
+
+        //opcionais
+        this.medicamentos = dados.medicamentos();
+        this.problema_respiratorio = dados.problema_respiratorio();
+        this.contatoEmergencia = dados.contatoEmergencia();
+        this.endereco = dados.endereco();
+
     }
 
     public void atualizarInformacoes(DadosAtualizarCliente dados) {

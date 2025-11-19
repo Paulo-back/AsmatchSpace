@@ -17,7 +17,13 @@ public record DadosCadastroCliente(
         @NotBlank @Pattern(regexp = "\\d{3}\\.?\\d{3}\\.?\\d{3}\\-?\\d{2}") String cpf,
         @NotBlank String senha,
         @NotBlank String sexo,
-        @NotNull Integer idade
+        @NotNull Integer idade,
 
+        //podem ser null
+        String medicamentos,
+        String problema_respiratorio,
+        String contatoEmergencia,
+        @Valid
+        Endereco endereco
         ) {
 }
