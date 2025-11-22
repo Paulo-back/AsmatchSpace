@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -62,7 +63,12 @@ public class ClienteController {
 
         // Obtém role (ROLE_USER ou ROLE_ADMIN)
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        String role = authentication.getAuthorities().stream().findFirst().get().getAuthority();
+        String role = authentication.getAuthorities()
+                .stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE_USER");
+
 
         Cliente cliente;
 
@@ -110,13 +116,47 @@ public class ClienteController {
 
     @DeleteMapping("/inativar/{id}")
     @Transactional
-    public ResponseEntity inativar(@PathVariable Long id){
+    public ResponseEntity inativar(
+            @PathVariable Long id,
+            HttpServletRequest request
+    ) {
 
-        var cliente = repository.getReferenceById(id);
+        // 1 – Extrai o token do header
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Token inválido ou ausente");
+        }
+
+        String token = header.substring(7);
+        Long idLogado = tokenService.getUserId(token);
+
+        // 2 – Pega a role do usuário logado
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String role = authentication.getAuthorities()
+                .stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE_USER");
+
+        Cliente cliente;
+
+        // 3 – ADMIN pode deletar qualquer ID enviado
+        if (role.equals("ROLE_ADMIN")) {
+            cliente = repository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        }
+        // 4 – USER só deleta o próprio cliente
+        else {
+            cliente = repository.findByUsuarioId(idLogado)
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
+        }
+
+        // 5 – Executa o delete lógico
         cliente.inativar();
 
         return ResponseEntity.noContent().build();
     }
+
 
     @DeleteMapping("/delete/{id}")
     @Transactional
