@@ -4,6 +4,7 @@ public record DadosListagemLembrete(
         Long id,
         String titulo,
         String horario,
+        String data,
         Boolean concluido
 ) {
     public DadosListagemLembrete(Lembretes lembrete) {
@@ -11,6 +12,7 @@ public record DadosListagemLembrete(
                 lembrete.getId(),
                 lembrete.getTitulo(),
                 lembrete.getHorario(),
+                lembrete.getData(),
                 lembrete.isConcluido()
         );
     }
