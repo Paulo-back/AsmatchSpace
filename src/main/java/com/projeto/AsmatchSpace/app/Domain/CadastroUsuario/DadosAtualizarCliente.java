@@ -6,7 +6,7 @@ import jakarta.persistence.Embedded;
 import jakarta.validation.Valid;
 
 public record DadosAtualizarCliente(
-//    Long id,
+    Long id,
     String medicamentos,
     String telefone,
     String sexo,
