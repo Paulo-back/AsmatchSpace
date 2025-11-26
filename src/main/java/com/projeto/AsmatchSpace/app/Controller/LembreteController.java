@@ -72,11 +72,19 @@ public class LembreteController {
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
+        Cliente clienteLogado = clienteRepository.findByUsuarioId(idUsuario)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
         var lembrete = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lembrete não encontrado"));
 
-        if (!lembrete.getCliente().getId().equals(cliente.getId()))
+//        if (!lembrete.getCliente().getId().equals(cliente.getId()))
+//            return ResponseEntity.status(403).body("Você não pode atualizar lembretes de outro usuário.");
+
+        if (!lembrete.getCliente().getId().equals(clienteLogado.getId()))
             return ResponseEntity.status(403).body("Você não pode atualizar lembretes de outro usuário.");
+
+
 
         lembrete.atualizarInformacoes(dados);
 

@@ -79,6 +79,7 @@ public class DiarioSintomaController {
         if (!diario.getCliente().getId().equals(cliente.getId()))
             return ResponseEntity.status(403).body("Você não pode atualizar registros de outro usuário.");
 
+
         diario.atualizarInformacoes(dados);
 
         return ResponseEntity.ok(new DadosDetalhamentoDiario(diario));
