@@ -20,6 +20,12 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
             """)
     Boolean findAtivoByid(Long id);
 
+    @Query("""
+        SELECT c
+        FROM Cliente c
+        WHERE
+        c.usuario.id = :usuarioId
+        """)
     Optional<Cliente> findByUsuarioId(Long usuarioId);
 
 
