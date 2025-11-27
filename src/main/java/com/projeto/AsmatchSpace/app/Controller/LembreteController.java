@@ -95,6 +95,8 @@ public class LembreteController {
 
 
     // DELETE
+    @DeleteMapping("/delete/{id}")
+    @Transactional
     public ResponseEntity deletar(@PathVariable Long id, HttpServletRequest request) {
 
         Long idUsuario = getUserId(request);
@@ -111,5 +113,23 @@ public class LembreteController {
 
         return ResponseEntity.noContent().build();
     }
+
+//    @DeleteMapping("/delete/{id}")
+//    @Transactional
+//    public ResponseEntity deletar(@PathVariable Long id, HttpServletRequest request) {
+//
+//        Long idUsuario = getUserId(request);
+//        Cliente cliente = getClienteLogado(idUsuario);
+//
+//        var diario = repository.findById(id)
+//                .orElseThrow(() -> new RuntimeException("Diário não encontrado"));
+//
+//        // impede excluir de outro cliente
+//        if (!diario.getCliente().getId().equals(cliente.getId()))
+//            return ResponseEntity.status(403).body("Você não pode excluir registros de outro usuário.");
+//
+//        repository.delete(diario);
+//        return ResponseEntity.noContent().build();
+//    }
 }
 
