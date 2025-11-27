@@ -3,12 +3,14 @@ package com.projeto.AsmatchSpace.app.Controller;
 import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.Cliente;
 import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.ClienteRepository;
 import com.projeto.AsmatchSpace.app.Domain.Lembrete.*;
+import com.projeto.AsmatchSpace.app.Domain.Usuario.Usuario;
 import com.projeto.AsmatchSpace.app.Security.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,41 +73,45 @@ public class LembreteController {
     // ATUALIZAR
     @PutMapping("/atualizar/{id}")
     @Transactional
-    public ResponseEntity atualizar(
-            @PathVariable Long id,
-            @RequestBody @Valid DadosAtualizarLembrete dados,
-            HttpServletRequest request) {
+    public ResponseEntity atualizar(@PathVariable Long id,
+                                    @RequestBody @Valid DadosAtualizarLembrete dados) {
 
-        // 1. Pega ID do usuário via token
-        Long idUsuarioDoToken = getUserId(request);
-        log.info("➡ TOKEN USER ID = {}", idUsuarioDoToken);
+        // Usuário logado via SecurityContext
+        Usuario usuarioLogado = (Usuario) SecurityContextHolder.getContext()
+                .getAuthentication().getPrincipal();
+        Long usuarioIdDoToken = usuarioLogado.getId();
 
-        // 2. Carrega cliente logado pelo usuário_id
-        Cliente clienteLogado = clienteRepository.findByUsuarioId(idUsuarioDoToken)
+        log.info("➡ Usuario ID Logado: {}", usuarioIdDoToken);
+
+        // Busca o cliente baseado no usuario_id do token
+        Cliente clienteLogado = clienteRepository.findByUsuarioId(usuarioIdDoToken)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        log.info("➡ CLIENTE LOGADO ID = {}", clienteLogado.getId());
+        log.info("Cliente Logado ID: {}", clienteLogado.getId());
 
-        // 3. Busca o lembrete
+        // Busca o lembrete
         var lembrete = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lembrete não encontrado"));
 
-        // 4. Extrai ID do usuário dono do lembrete
-        Long donoDoLembreteUsuarioId = lembrete.getCliente().getUsuario().getId();
-        log.info("➡ DONO DO LEMBRETE (usuario_id) = {}", donoDoLembreteUsuarioId);
+        log.info("Lembrete {} pertence ao Cliente UsuarioID {}", id, lembrete.getCliente().getUsuario().getId());
 
-        // 5. Comparação correta (usuario_id → usuario_id)
-        if (!donoDoLembreteUsuarioId.equals(idUsuarioDoToken)) {
-            log.warn("🚨 NEGADO: token {} ≠ lembrete.dono {}", idUsuarioDoToken, donoDoLembreteUsuarioId);
+        // Verifica se o lembrete pertence ao usuário
+        if (!lembrete.getCliente().getUsuario().getId().equals(usuarioIdDoToken)) {
+
+            log.warn("🚨 ACESSO NEGADO: Token Usuario {} ≠ Dono Usuario {}",
+                    usuarioIdDoToken,
+                    lembrete.getCliente().getUsuario().getId());
+
             return ResponseEntity.status(403).body("Você não pode atualizar lembretes de outro usuário.");
         }
 
-        // 6. Atualiza
+        // Atualização
         lembrete.atualizarInformacoes(dados);
 
-        log.info("✅ ACESSO PERMITIDO");
         return ResponseEntity.ok(new DadosDetalhamentoLembrete(lembrete));
     }
+
+
 
 
 
