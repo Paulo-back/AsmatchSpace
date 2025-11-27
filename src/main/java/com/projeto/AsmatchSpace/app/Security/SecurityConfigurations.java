@@ -28,22 +28,23 @@ public class SecurityConfigurations {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> req
+                        // ADMIN apenas clientes/listagem
+                        .requestMatchers("/clientes/listagem").hasRole("ADMIN")
 
-                        // ROTAS QUE PERMITEM ACESSO LIVRE
-                        .requestMatchers("/login",
+                        // Lembretes liberados
+                        .requestMatchers("/lembretes/**").permitAll()
+                        .requestMatchers("/diario/**").permitAll()
+
+
+                        // Rotas públicas padrão
+                        .requestMatchers(
+                                "/login",
                                 "/clientes/cadastro",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/lembretes/atualizar/**",
-                                "/**"              // <--- libera tudo
+                                "/swagger-ui/**"
                         ).permitAll()
 
-                        // ROTA PROTEGIDA (ÚNICA)
-                        .requestMatchers("/clientes/listagem")
-                        .hasRole("ADMIN")
-
-                        // QUALQUER OUTRA COISA (vai acabar entrando no /** acima)
                         .anyRequest().permitAll()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
