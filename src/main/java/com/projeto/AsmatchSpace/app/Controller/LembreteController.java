@@ -71,38 +71,39 @@ public class LembreteController {
     // ATUALIZAR
     @PutMapping("/atualizar/{id}")
     @Transactional
-    public ResponseEntity atualizar(@PathVariable Long id, @RequestBody @Valid DadosAtualizarLembrete dados, HttpServletRequest request) {
+    public ResponseEntity atualizar(@PathVariable Long id,
+                                    @RequestBody @Valid DadosAtualizarLembrete dados,
+                                    HttpServletRequest request) {
 
         // 1. Log do Recurso e Usuário de Login (Token)
         Long idUsuarioDeLogin = getUserId(request);
         log.info("➡ TENTATIVA DE ATUALIZAÇÃO: Lembrete ID {} | Token ID (Login): {}", id, idUsuarioDeLogin);
 
-        // 2. Tradução do ID de Login para o Objeto Cliente
-        Cliente clienteLogado;
-        try {
-            clienteLogado = clienteRepository.findByUsuarioId(idUsuarioDeLogin)
-                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
-        } catch (RuntimeException e) {
-            log.error("❌ ERRO: Cliente não encontrado para ID de Login: {}", idUsuarioDeLogin);
+        // 2. Pega o Cliente associado ao usuário do token
+        Cliente clienteLogado = clienteRepository.findByUsuarioId(idUsuarioDeLogin)
+                .orElse(null);
+
+        if (clienteLogado == null) {
+            log.error("❌ ERRO: Nenhum cliente encontrado para o usuário ID {}", idUsuarioDeLogin);
             return ResponseEntity.status(404).body("Cliente não encontrado para o ID fornecido.");
         }
 
         log.info("   Cliente Logado Encontrado: Cliente ID (Dados): {}", clienteLogado.getId());
 
-
-        // 3. Busca o Lembrete
+        // 3. Busca o lembrete
         var lembrete = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lembrete não encontrado"));
 
         // 4. Log da Propriedade no DB
         log.info("   Lembrete {} pertence ao Cliente ID (DB): {}", id, lembrete.getCliente().getId());
 
+        // 5. Verificação correta de propriedade:
+        //    compara o ID DO USUÁRIO dono do cliente com o ID do token.
+        Long usuarioDonoDoLembrete = lembrete.getCliente().getUsuario().getId();
 
-        // 5. Verificação de Propriedade
-        if (!lembrete.getCliente().getId().equals(clienteLogado.getId())) {
-
-            log.warn("🚨 ACESSO NEGADO (403): ID do Token ({}) não coincide com ID do Dono ({}) para Lembrete ID {}",
-                    clienteLogado.getId(), lembrete.getCliente().getId(), id);
+        if (!usuarioDonoDoLembrete.equals(idUsuarioDeLogin)) {
+            log.warn("🚨 ACESSO NEGADO (403): Token UsuarioID = {} | Usuario Dono = {} | LembreteID = {}",
+                    idUsuarioDeLogin, usuarioDonoDoLembrete, id);
 
             return ResponseEntity.status(403).body("Você não pode atualizar lembretes de outro usuário.");
         }
@@ -113,6 +114,7 @@ public class LembreteController {
 
         return ResponseEntity.ok(new DadosDetalhamentoLembrete(lembrete));
     }
+
 
     // DELETE
     @DeleteMapping("/delete/{id}")
