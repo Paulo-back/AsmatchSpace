@@ -17,32 +17,34 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 @EnableWebSecurity
 public class SecurityConfigurations {
+
     @Autowired
     private SecurityFilter securityFilter;
 
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         return http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> req
-                        // Endpoints públicos
-                        .requestMatchers("/login", "/clientes/cadastro").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
 
-                        // Endpoints do ADMIN
-                        .requestMatchers("/clientes/listagem").hasRole("ADMIN")
+                        // ROTAS QUE PERMITEM ACESSO LIVRE
+                        .requestMatchers("/login",
+                                "/clientes/cadastro",
+                                "/v3/api-docs/**",
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/lembretes/atualizar/**",
+                                "/**"              // <--- libera tudo
+                        ).permitAll()
 
-                        .requestMatchers("/lembretes/atualizar/{id}").permitAll()
+                        // ROTA PROTEGIDA (ÚNICA)
+                        .requestMatchers("/clientes/listagem")
+                        .hasRole("ADMIN")
 
-                        // Endpoints que exigem apenas usuário autenticado
-                        .requestMatchers("/clientes/atualizar",
-                                "/clientes/inativar/**",
-                                "/clientes/delete/**").authenticated()
-
-                        // Tudo o resto precisa de login
-                        .anyRequest().authenticated()
+                        // QUALQUER OUTRA COISA (vai acabar entrando no /** acima)
+                        .anyRequest().permitAll()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -51,9 +53,9 @@ public class SecurityConfigurations {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
-
     }
 }
+
 
 //        @Bean
 //        public PasswordEncoder passwordEncoder(){

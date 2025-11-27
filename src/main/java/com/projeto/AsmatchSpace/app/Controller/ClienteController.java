@@ -51,6 +51,24 @@ public class ClienteController {
         return ResponseEntity.created(uri).body(new DadosDetalhamentoCliente(cliente));
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<DadosDetalhamentoCliente> getMe(HttpServletRequest request) {
+
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(null);
+        }
+
+        String token = header.substring(7);
+        Long idUsuario = tokenService.getUserId(token);
+
+        var cliente = repository.findByUsuarioId(idUsuario)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
+    }
+
+
 
 
     @PutMapping("/atualizar")
