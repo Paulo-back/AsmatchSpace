@@ -71,49 +71,42 @@ public class LembreteController {
     // ATUALIZAR
     @PutMapping("/atualizar/{id}")
     @Transactional
-    public ResponseEntity atualizar(@PathVariable Long id,
-                                    @RequestBody @Valid DadosAtualizarLembrete dados,
-                                    HttpServletRequest request) {
+    public ResponseEntity atualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid DadosAtualizarLembrete dados,
+            HttpServletRequest request) {
 
-        // 1. Log do Recurso e Usuário de Login (Token)
-        Long idUsuarioDeLogin = getUserId(request);
-        log.info("➡ TENTATIVA DE ATUALIZAÇÃO: Lembrete ID {} | Token ID (Login): {}", id, idUsuarioDeLogin);
+        // 1. Pega ID do usuário via token
+        Long idUsuarioDoToken = getUserId(request);
+        log.info("➡ TOKEN USER ID = {}", idUsuarioDoToken);
 
-        // 2. Pega o Cliente associado ao usuário do token
-        Cliente clienteLogado = clienteRepository.findByUsuarioId(idUsuarioDeLogin)
-                .orElse(null);
+        // 2. Carrega cliente logado pelo usuário_id
+        Cliente clienteLogado = clienteRepository.findByUsuarioId(idUsuarioDoToken)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        if (clienteLogado == null) {
-            log.error("❌ ERRO: Nenhum cliente encontrado para o usuário ID {}", idUsuarioDeLogin);
-            return ResponseEntity.status(404).body("Cliente não encontrado para o ID fornecido.");
-        }
-
-        log.info("   Cliente Logado Encontrado: Cliente ID (Dados): {}", clienteLogado.getId());
+        log.info("➡ CLIENTE LOGADO ID = {}", clienteLogado.getId());
 
         // 3. Busca o lembrete
         var lembrete = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lembrete não encontrado"));
 
-        // 4. Log da Propriedade no DB
-        log.info("   Lembrete {} pertence ao Cliente ID (DB): {}", id, lembrete.getCliente().getId());
+        // 4. Extrai ID do usuário dono do lembrete
+        Long donoDoLembreteUsuarioId = lembrete.getCliente().getUsuario().getId();
+        log.info("➡ DONO DO LEMBRETE (usuario_id) = {}", donoDoLembreteUsuarioId);
 
-        // 5. Verificação correta de propriedade:
-        //    compara o ID DO USUÁRIO dono do cliente com o ID do token.
-        Long usuarioDonoDoLembrete = lembrete.getCliente().getUsuario().getId();
-
-        if (!usuarioDonoDoLembrete.equals(idUsuarioDeLogin)) {
-            log.warn("🚨 ACESSO NEGADO (403): Token UsuarioID = {} | Usuario Dono = {} | LembreteID = {}",
-                    idUsuarioDeLogin, usuarioDonoDoLembrete, id);
-
+        // 5. Comparação correta (usuario_id → usuario_id)
+        if (!donoDoLembreteUsuarioId.equals(idUsuarioDoToken)) {
+            log.warn("🚨 NEGADO: token {} ≠ lembrete.dono {}", idUsuarioDoToken, donoDoLembreteUsuarioId);
             return ResponseEntity.status(403).body("Você não pode atualizar lembretes de outro usuário.");
         }
 
-        // Lógica de Sucesso
-        log.info("✅ ACESSO PERMITIDO: Lógica de atualização iniciada.");
+        // 6. Atualiza
         lembrete.atualizarInformacoes(dados);
 
+        log.info("✅ ACESSO PERMITIDO");
         return ResponseEntity.ok(new DadosDetalhamentoLembrete(lembrete));
     }
+
 
 
     // DELETE
