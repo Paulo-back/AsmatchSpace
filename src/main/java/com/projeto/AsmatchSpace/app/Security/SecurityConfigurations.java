@@ -28,13 +28,13 @@ public class SecurityConfigurations {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(req -> req
                         // Endpoints públicos
-                        .requestMatchers("/login", "clientes/cadastro").permitAll()
+                        .requestMatchers("/login", "clientes/cadastro","/lembretes/**","/diario/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui.html", "/swagger-ui/**").permitAll()
 
                         // Endpoints do ADMIN
                         .requestMatchers("/clientes/listagem").hasRole("ADMIN")
 
-                        .requestMatchers("/lembretes/**").hasRole("USER") // Permite acesso a toda a rota /lembretes/ para usuários com ROLE_USER
+//                        .requestMatchers("/lembretes/**").hasRole("USER") // Permite acesso a toda a rota /lembretes/ para usuários com ROLE_USER
 
                         // Endpoints que exigem apenas usuário autenticado
                         .requestMatchers("/clientes/atualizar",
