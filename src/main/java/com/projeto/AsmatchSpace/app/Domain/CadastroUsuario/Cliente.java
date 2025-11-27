@@ -80,6 +80,12 @@ public class Cliente {
         if (dados.contatoEmergencia() != null)
             this.contatoEmergencia = dados.contatoEmergencia();
 
+        if (dados.idade() != null)
+            this.idade = dados.idade();
+
+        if (dados.nome() != null)
+            this.nome = dados.nome();
+
     }
 
 

@@ -7,9 +7,11 @@ import jakarta.validation.Valid;
 
 public record DadosAtualizarCliente(
     Long id,
+    String nome,
     String medicamentos,
     String telefone,
     String sexo,
+    Integer idade,
     String problema_respiratorio,
     String alergias,
     String contatoEmergencia,
