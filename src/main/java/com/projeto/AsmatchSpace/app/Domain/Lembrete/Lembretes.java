@@ -38,5 +38,9 @@ public class Lembretes {
         if (dados.data() != null) this.data = dados.data();
         if (dados.concluido() != null) this.concluido = dados.concluido();
     }
+
+    public Long getId() {
+        return id;
+    }
 }
 

@@ -34,6 +34,8 @@ public class SecurityConfigurations {
                         // Endpoints do ADMIN
                         .requestMatchers("/clientes/listagem").hasRole("ADMIN")
 
+                        .requestMatchers("/lembretes/**").hasRole("USER") // Permite acesso a toda a rota /lembretes/ para usuários com ROLE_USER
+
                         // Endpoints que exigem apenas usuário autenticado
                         .requestMatchers("/clientes/atualizar",
                                 "/clientes/inativar/**",
