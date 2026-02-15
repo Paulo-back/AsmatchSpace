@@ -65,19 +65,24 @@ public class DiarioSintomaController {
     }
 
     // ---- ATUALIZAR ---- //
-    @PutMapping("/atualizar")
+    @PutMapping("/atualizar/{id}")  // ou @PutMapping("/atualizar/{id}") se quiser manter o nome
     @Transactional
-    public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizarDiario dados, HttpServletRequest request) {
+    public ResponseEntity<?> atualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid DadosAtualizarDiario dados,
+            HttpServletRequest request) {
 
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var diario = repository.findById(dados.id())
+        var diario = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Diário não encontrado"));
 
-        // impede atualizar de outro cliente
-        if (!diario.getCliente().getId().equals(cliente.getId()))
-            return ResponseEntity.status(403).body("Você não pode atualizar registros de outro usuário.");
+        // Impede atualizar registro de outro cliente
+        if (!diario.getCliente().getId().equals(cliente.getId())) {
+            return ResponseEntity.status(403)
+                    .body("Você não pode atualizar registros de outro usuário.");
+        }
 
 
         diario.atualizarInformacoes(dados);

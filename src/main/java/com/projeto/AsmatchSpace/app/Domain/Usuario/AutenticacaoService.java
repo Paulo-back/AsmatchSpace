@@ -14,21 +14,10 @@ public class AutenticacaoService implements UserDetailsService {
     @Autowired
     private UsuarioRepository repository;
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-
-
-
-
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        return repository.findByLogin(username);
-    }
-
-    public Long getId() {
-        return id;
+        return repository.findByLogin(username)
+                .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + username));
     }
 
 }

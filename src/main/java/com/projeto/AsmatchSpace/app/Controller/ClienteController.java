@@ -71,15 +71,23 @@ public class ClienteController {
 
 
 
-    @PutMapping("/atualizar")
+    @PutMapping("/atualizar/{id}")
     @Transactional
-    public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizarCliente dados, HttpServletRequest request) {
+    public ResponseEntity<DadosDetalhamentoCliente> atualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid DadosAtualizarCliente dados,
+            HttpServletRequest request) {
 
-        // Extrai ID do usuário logado
-        String token = request.getHeader("Authorization").replace("Bearer ", "");
+        // 1 – Extrai e valida o token (igual ao delete)
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body(null); // ou lance exceção personalizada
+        }
+
+        String token = header.substring(7);
         Long idLogado = tokenService.getUserId(token);
 
-        // Obtém role (ROLE_USER ou ROLE_ADMIN)
+        // 2 – Pega a role do usuário logado
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         String role = authentication.getAuthorities()
                 .stream()
@@ -87,50 +95,80 @@ public class ClienteController {
                 .map(GrantedAuthority::getAuthority)
                 .orElse("ROLE_USER");
 
-
         Cliente cliente;
 
-        // ADMIN pode atualizar qualquer cliente (usando ID passado)
+        // 3 – ADMIN pode atualizar qualquer cliente pelo ID da path
         if (role.equals("ROLE_ADMIN")) {
-            cliente = repository.findById(dados.id())
+            cliente = repository.findById(id)
                     .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
         }
-        // USER só pode atualizar o próprio cliente vinculado
+        // 4 – USER só pode atualizar o próprio cliente
         else {
             cliente = repository.findByUsuarioId(idLogado)
                     .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
+
+            // Validação extra: garante que o ID da path seja o do usuário logado
+            if (!cliente.getId().equals(id)) {
+                return ResponseEntity.status(403).build(); // Forbidden
+            }
         }
 
-        // Atualiza os dados
+        // 5 – Atualiza os dados
         cliente.atualizarInformacoes(dados);
 
+        return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
+    }
+    @PatchMapping("/att/{id}")
+    @Transactional
+    public ResponseEntity<DadosDetalhamentoCliente> atualizarParcialmente(
+            @PathVariable Long id,
+            @RequestBody @Valid DadosAtualizarCliente dados,
+            HttpServletRequest request) {
+
+        // 1 – Valida e extrai o token
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String token = header.substring(7);
+        Long idLogado = tokenService.getUserId(token);
+
+        // 2 – Obtém a role do usuário logado
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String role = authentication.getAuthorities()
+                .stream()
+                .findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE_USER");
+
+        Cliente cliente;
+
+        // 3 – ADMIN pode atualizar qualquer cliente
+        if ("ROLE_ADMIN".equals(role)) {
+            cliente = repository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        }
+        // 4 – USER só pode atualizar o próprio perfil
+        else {
+            cliente = repository.findByUsuarioId(idLogado)
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
+
+            // Impede que o usuário tente alterar outro cliente via ID na URL
+            if (!cliente.getId().equals(id)) {
+                return ResponseEntity.status(403).build(); // Forbidden
+            }
+        }
+
+        // 5 – Atualiza APENAS os campos que vieram no DTO
+        cliente.atualizarInformacoes(dados);
+
+        // 6 – Retorna o cliente atualizado
         return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
     }
 
 
 
-
-//    @PutMapping("/atualizar")
-//    @Transactional
-//    public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizarCliente dados, HttpServletRequest request) {
-//
-//
-//        String token = request.getHeader("Authorization").replace("Bearer ", "");
-//        Long idLogado = tokenService.getUserId(token);
-//
-//        var authentication = SecurityContextHolder.getContext().getAuthentication();
-//        String role = authentication.getAuthorities().stream().findFirst().get().getAuthority(); // ROLE_USER ou ROLE_ADMIN
-//
-//        // Se não for admin, só pode atualizar ele mesmo
-//        var cliente = repository.getReferenceById(dados.id());
-//        if (!role.equals("ROLE_ADMIN") && !idLogado.equals(cliente.getUsuario().getId())) {
-//            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Você só pode atualizar seu próprio perfil.");
-//        }
-//
-//        cliente.atualizarInformacoes(dados);
-//
-//        return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
-//    }
 
     @DeleteMapping("/inativar/{id}")
     @Transactional

@@ -1,6 +1,7 @@
 package com.projeto.AsmatchSpace.app.Security;
 
 
+import com.projeto.AsmatchSpace.app.Domain.Usuario.Usuario;
 import com.projeto.AsmatchSpace.app.Domain.Usuario.UsuarioRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,24 +25,31 @@ public class SecurityFilter extends OncePerRequestFilter {
     private UsuarioRepository repository;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        System.out.println("CHAMANDO FILTER!!!");
-        var tokenJWT = recuperarToken(request);
-//        System.out.println("TOKEN"+tokenJWT);
-        if (tokenJWT != null){
-            var subject = tokenService.getSubject(tokenJWT);//recupera o token do cabeçalho
-            var usuario = repository.findByLogin(subject);
-            var authentication = new UsernamePasswordAuthenticationToken(usuario,null,usuario.getAuthorities());
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);//Força a autenticacao
+        String tokenJWT = recuperarToken(request);
 
-            System.out.println("LOGADO NA REQUISIÇÃO");
+        if (tokenJWT != null) {
+            try {
+                String login = tokenService.getSubject(tokenJWT);
+
+                Usuario usuario = repository.findByLogin(login)
+                        .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + login));
+
+                var authentication = new UsernamePasswordAuthenticationToken(
+                        usuario, null, usuario.getAuthorities());
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            } catch (Exception e) {
+                // Token inválido, expirado ou usuário não existe mais
+                SecurityContextHolder.clearContext();
+                // Opcional: logger.warn("Falha na autenticação JWT", e);
+            }
         }
 
-//        System.out.println(subject);
-
-        filterChain.doFilter(request,response);
-
+        filterChain.doFilter(request, response);
     }
 
     private String recuperarToken(HttpServletRequest request) {

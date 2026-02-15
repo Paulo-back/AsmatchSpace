@@ -70,19 +70,26 @@ public class LembreteController {
     }
 
     // ATUALIZAR
-    @PutMapping("/atualizar")
+    // ---- ATUALIZAR LEMBRETE ---- //
+    @PutMapping("/atualizar/{id}")
     @Transactional
-    public ResponseEntity atualizar(@RequestBody @Valid DadosAtualizarLembrete dados, HttpServletRequest request) {
+    public ResponseEntity<?> atualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid DadosAtualizarLembrete dados,
+            HttpServletRequest request) {
 
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var lembrete = repository.findById(dados.id())
+        var lembrete = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Lembrete não encontrado"));
 
-        // impede atualizar lembrete de outro cliente
-        if (!lembrete.getCliente().getId().equals(cliente.getId()))
-            return ResponseEntity.status(403).body("Você não pode atualizar lembretes de outro usuário.");
+        // Impede atualizar lembrete de outro cliente
+        if (!lembrete.getCliente().getId().equals(cliente.getId())) {
+            // Solução simples e tipada: retorna um objeto no body
+            return ResponseEntity.status(403)
+                    .body("Você não pode atualizar lembretes de outro usuário.");
+        }
 
         lembrete.atualizarInformacoes(dados);
 

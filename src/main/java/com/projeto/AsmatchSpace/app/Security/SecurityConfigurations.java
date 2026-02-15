@@ -20,23 +20,22 @@ public class SecurityConfigurations {
 
     @Autowired
     private SecurityFilter securityFilter;
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         return http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                )
+
                 .authorizeHttpRequests(req -> req
-                        // ADMIN apenas clientes/listagem
-                        .requestMatchers("/clientes/listagem").hasRole("ADMIN")
 
-                        // Lembretes liberados
-                        .requestMatchers("/lembretes/**").permitAll()
-                        .requestMatchers("/diario/**").permitAll()
-
-
-                        // Rotas públicas padrão
+                        // Endpoints totalmente públicos
                         .requestMatchers(
                                 "/login",
                                 "/clientes/cadastro",
@@ -45,7 +44,21 @@ public class SecurityConfigurations {
                                 "/swagger-ui/**"
                         ).permitAll()
 
-                        .anyRequest().permitAll()
+                        // ADMIN apenas
+                        .requestMatchers("/clientes/listagem").hasRole("ADMIN")
+
+                        // Endpoints que exigem autenticação (usuário logado)
+                        .requestMatchers(
+                                "/clientes/atualizar",
+                                "/clientes/inativar/**",
+                                "/clientes/delete/**",
+                                "/lembretes/**",      // ← volte a proteger (ou defina regras mais finas)
+                                "/diario/**" ,
+                                "/relatorios/**"// ← idem
+                        ).authenticated()
+
+                        // Qualquer outra rota exige autenticação
+                        .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
