@@ -1,10 +1,13 @@
 package com.projeto.AsmatchSpace.app.Domain.Lembrete;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 public record DadosDetalhamentoLembrete(
         Long id,
         String titulo,
-        String horario,
-        String data,
+        LocalTime horario,
+        LocalDate data,
         Boolean concluido
 ) {
     public DadosDetalhamentoLembrete(Lembretes lembrete) {

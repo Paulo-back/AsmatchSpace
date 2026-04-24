@@ -9,6 +9,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +23,7 @@ import org.slf4j.LoggerFactory;
 public class LembreteController {
 
     @Autowired
-    private LembreteRepository repository;
+    private LembreteService lembreteService;
     @Autowired
     private ClienteRepository clienteRepository;
     @Autowired
@@ -32,7 +35,6 @@ public class LembreteController {
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer "))
             throw new RuntimeException("Token não enviado");
-
         return tokenService.getUserId(header.replace("Bearer ", ""));
     }
 
@@ -40,37 +42,30 @@ public class LembreteController {
         return clienteRepository.findByUsuarioId(usuarioId)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
     }
-    // CADASTRAR
+
     @PostMapping("/cadastro")
     @Transactional
     public ResponseEntity cadastrar(@RequestBody @Valid DadosCadastroLembrete dados, HttpServletRequest request) {
-
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var lembrete = new Lembretes(dados, cliente);
-        repository.save(lembrete);
-
+        var lembrete = lembreteService.cadastrar(dados, cliente);
         return ResponseEntity.ok(new DadosDetalhamentoLembrete(lembrete));
     }
 
-    // LISTAR
     @GetMapping("/listar")
-    public ResponseEntity listar(HttpServletRequest request) {
+    public ResponseEntity<Page<DadosListagemLembrete>> listar(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request) {
 
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var lista = repository.findAllByClienteId(cliente.getId())
-                .stream()
-                .map(DadosListagemLembrete::new)
-                .toList();
-
-        return ResponseEntity.ok(lista);
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(lembreteService.listar(cliente.getId(), pageable));
     }
 
-    // ATUALIZAR
-    // ---- ATUALIZAR LEMBRETE ---- //
     @PutMapping("/atualizar/{id}")
     @Transactional
     public ResponseEntity<?> atualizar(
@@ -81,41 +76,21 @@ public class LembreteController {
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var lembrete = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lembrete não encontrado"));
-
-        // Impede atualizar lembrete de outro cliente
-        if (!lembrete.getCliente().getId().equals(cliente.getId())) {
-            // Solução simples e tipada: retorna um objeto no body
-            return ResponseEntity.status(403)
-                    .body("Você não pode atualizar lembretes de outro usuário.");
-        }
-
+        // atualizar pode ficar aqui por ora — mover pro service depois se quiser
+        var lembrete = lembreteService.buscarPorId(id, cliente);
         lembrete.atualizarInformacoes(dados);
 
         return ResponseEntity.ok(new DadosDetalhamentoLembrete(lembrete));
     }
 
-
-    // DELETE
     @DeleteMapping("/deletar/{id}")
     @Transactional
     public ResponseEntity deletar(@PathVariable Long id, HttpServletRequest request) {
-
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var lembrete = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lembrete não encontrado"));
-
-        // impede deletar lembrete de outro cliente
-        if (!lembrete.getCliente().getId().equals(cliente.getId()))
-            return ResponseEntity.status(403).body("Você não pode excluir lembretes de outro usuário.");
-
-        repository.delete(lembrete);
-
+        lembreteService.deletar(id, cliente);
         return ResponseEntity.noContent().build();
     }
-
 }
 

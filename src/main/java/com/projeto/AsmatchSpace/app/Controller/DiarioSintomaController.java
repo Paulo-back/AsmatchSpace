@@ -8,6 +8,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +24,9 @@ public class DiarioSintomaController {
     private ClienteRepository clienteRepository;
     @Autowired
     private TokenService tokenService;
+
+    @Autowired
+    private DiarioSintomaService diarioService;
 
     private Long getUserId(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
@@ -39,29 +45,27 @@ public class DiarioSintomaController {
     @PostMapping("/cadastro")
     @Transactional
     public ResponseEntity cadastrar(@RequestBody @Valid DadosCadastroDiario dados, HttpServletRequest request) {
-
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var diario = new DiarioSintoma(dados, cliente);
-        repository.save(diario);
-
+        var diario = diarioService.cadastrar(dados, cliente);
         return ResponseEntity.ok(new DadosDetalhamentoDiario(diario));
     }
 
     // ---- LISTAR ---- //
     @GetMapping("/listar")
-    public ResponseEntity listar(HttpServletRequest request) {
+    public ResponseEntity<Page<DadosListagemDiario>> listar(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            HttpServletRequest request) {
 
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var lista = repository.findAllByClienteId(cliente.getId())
-                .stream()
-                .map(DadosListagemDiario::new)
-                .toList();
+        Pageable pageable = PageRequest.of(page, size);
+        Page<DadosListagemDiario> resultado = diarioService.listar(cliente.getId(), pageable);
 
-        return ResponseEntity.ok(lista);
+        return ResponseEntity.ok(resultado);
     }
 
     // ---- ATUALIZAR ---- //
@@ -94,18 +98,10 @@ public class DiarioSintomaController {
     @DeleteMapping("/delete/{id}")
     @Transactional
     public ResponseEntity deletar(@PathVariable Long id, HttpServletRequest request) {
-
         Long idUsuario = getUserId(request);
         Cliente cliente = getClienteLogado(idUsuario);
 
-        var diario = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Diário não encontrado"));
-
-        // impede excluir de outro cliente
-        if (!diario.getCliente().getId().equals(cliente.getId()))
-            return ResponseEntity.status(403).body("Você não pode excluir registros de outro usuário.");
-
-        repository.delete(diario);
+        diarioService.deletar(id, cliente);
         return ResponseEntity.noContent().build();
     }
 }

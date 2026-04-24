@@ -1,9 +1,15 @@
 package com.projeto.AsmatchSpace.app.Controller;
 
+import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.Cliente;
+import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.ClienteRepository;
 import com.projeto.AsmatchSpace.app.Domain.Diario.DiarioSintoma;
 import com.projeto.AsmatchSpace.app.Domain.Diario.DiarioSintomaService;
 import com.projeto.AsmatchSpace.app.Domain.Diario.PDF.DiarioSintomaPdfBuilder;
 import com.projeto.AsmatchSpace.app.Domain.Diario.PDF.RelatorioPdfService;
+import com.projeto.AsmatchSpace.app.Security.TokenService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,15 +29,40 @@ public class RelatorioController {
     private RelatorioPdfService pdfService;
     @Autowired
     private DiarioSintomaService diarioService;
+    @Autowired
+    private ClienteRepository clienteRepository;
+    @Autowired
+    private TokenService tokenService;
 
-    @GetMapping("/diario/{clienteId}/{meses}")
+    private static final Logger log = LoggerFactory.getLogger(LembreteController.class);
+
+    private Long getUserId(HttpServletRequest request) {
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer "))
+            throw new RuntimeException("Token não enviado");
+
+        return tokenService.getUserId(header.replace("Bearer ", ""));
+    }
+
+    private Cliente getClienteLogado(Long usuarioId) {
+        return clienteRepository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
+    }
+
+
+    @GetMapping("/diario/{meses}")
     public ResponseEntity<?> gerarPdf(
-            @PathVariable Long clienteId,
-            @PathVariable int meses) {
+            @PathVariable int meses,
+            HttpServletRequest request) {
 
+        // 🔐 Pega ID do usuário pelo token
+        Long idUsuario = getUserId(request);
+        Cliente cliente = getClienteLogado(idUsuario);
+
+        // 🔎 Busca apenas dados do cliente logado
         List<DiarioSintoma> dados =
                 diarioService.buscarUltimosMeses(
-                        clienteId, meses);
+                        cliente.getId(), meses);
 
         if (dados.isEmpty()) {
             return ResponseEntity

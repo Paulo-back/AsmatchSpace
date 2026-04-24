@@ -1,9 +1,12 @@
 package com.projeto.AsmatchSpace.app.Domain.Diario;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 public record DadosDetalhamentoDiario(
         Long id,
-        String data,
-        String horario,
+        LocalDate data,
+        LocalTime horario,
         String intensidade,
         String descricao
 ) {

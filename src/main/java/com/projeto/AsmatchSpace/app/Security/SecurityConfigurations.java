@@ -39,6 +39,9 @@ public class SecurityConfigurations {
                         .requestMatchers(
                                 "/login",
                                 "/clientes/cadastro",
+                                "/auth/recuperar-senha/info",
+                                "/auth/recuperar-senha/verificar",
+                                "/auth/recuperar-senha/redefinir",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
                                 "/swagger-ui/**"

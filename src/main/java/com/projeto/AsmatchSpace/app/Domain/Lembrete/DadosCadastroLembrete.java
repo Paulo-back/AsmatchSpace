@@ -1,9 +1,13 @@
 package com.projeto.AsmatchSpace.app.Domain.Lembrete;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 public record DadosCadastroLembrete(
         @NotBlank String titulo,
-        @NotBlank String horario,
-        @NotBlank String data
+        @NotNull LocalTime horario,
+        @NotNull LocalDate data
 ) {}

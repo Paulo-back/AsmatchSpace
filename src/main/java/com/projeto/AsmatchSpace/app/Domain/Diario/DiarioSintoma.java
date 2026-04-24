@@ -4,6 +4,9 @@ import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.Cliente;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+
 @Entity
 @Table(name = "diario_sintomas")
 @Getter
@@ -15,8 +18,8 @@ public class DiarioSintoma {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String data;
-    private String horario;
+    private LocalDate data;
+    private LocalTime horario;
     private String intensidade;
     @Column(columnDefinition = "TEXT")
     private String descricao;

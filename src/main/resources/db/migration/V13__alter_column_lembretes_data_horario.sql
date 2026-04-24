@@ -1,0 +1,3 @@
+ALTER TABLE lembretes
+    ALTER COLUMN horario TYPE TIME USING horario::TIME,
+    ALTER COLUMN data    TYPE DATE USING data::DATE;

@@ -4,6 +4,10 @@ import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.Cliente;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+
 @Entity
 @Table(name = "lembretes")
 @Getter
@@ -16,8 +20,8 @@ public class Lembretes {
     private Long id;
 
     private String titulo;
-    private String horario;
-    private String data;
+    private LocalTime horario;
+    private LocalDate data;
     private boolean concluido;
 
     @ManyToOne

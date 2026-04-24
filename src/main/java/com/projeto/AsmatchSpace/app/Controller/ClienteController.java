@@ -32,6 +32,10 @@ public class ClienteController {
     UsuarioRepository usuarioRepository;
 
     @Autowired
+    private ClienteService clienteService;
+
+
+    @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
@@ -39,16 +43,21 @@ public class ClienteController {
 
     @PostMapping("/cadastro")
     @Transactional
-    public ResponseEntity cadastrar(@RequestBody @Valid DadosCadastroCliente dados, UriComponentsBuilder uriBuilder){
+    public ResponseEntity cadastrar(@RequestBody @Valid DadosCadastroCliente dados,
+                                    UriComponentsBuilder uriBuilder) {
+
         var senhaCriptografada = passwordEncoder.encode(dados.senha());
-        var usuario = new Usuario(dados.email(),senhaCriptografada);
+        var usuario = new Usuario(dados.email(), senhaCriptografada);
         usuarioRepository.save(usuario);
 
-        var cliente = new Cliente(dados,usuario);
-        repository.save(cliente);
-        System.out.println("Cliente cadastrado com sucesso!");
-        var uri = uriBuilder.path("/cadastro/{id}").buildAndExpand(cliente.getId()).toUri();
-        return ResponseEntity.created(uri).body(new DadosDetalhamentoCliente(cliente));
+        var cliente = clienteService.cadastrar(dados, usuario);
+
+        var uri = uriBuilder.path("/cadastro/{id}")
+                .buildAndExpand(cliente.getId())
+                .toUri();
+
+        return ResponseEntity.created(uri)
+                .body(new DadosDetalhamentoCliente(cliente));
     }
 
     @GetMapping("/me")
@@ -66,6 +75,17 @@ public class ClienteController {
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
         return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
+    }
+
+    @GetMapping("/me/id")
+    public ResponseEntity<Long> getMeuId(HttpServletRequest request) {
+        String token = request.getHeader("Authorization").substring(7);
+        Long usuarioId = tokenService.getUserId(token);
+
+        Cliente cliente = repository.findByUsuarioId(usuarioId)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        return ResponseEntity.ok(cliente.getId());
     }
 
 
@@ -160,11 +180,51 @@ public class ClienteController {
             }
         }
 
+
+
         // 5 – Atualiza APENAS os campos que vieram no DTO
         cliente.atualizarInformacoes(dados);
 
         // 6 – Retorna o cliente atualizado
         return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
+    }
+
+    @PutMapping("/atualizar")
+    @Transactional
+    public ResponseEntity<DadosDetalhamentoCliente> atualizarProprioPerfil(
+            @RequestBody @Valid DadosAtualizarCliente dados,
+            HttpServletRequest request) {
+
+        String token = request.getHeader("Authorization").substring(7);
+        Long idLogado = tokenService.getUserId(token);
+
+        Cliente cliente = repository.findByUsuarioId(idLogado)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        cliente.atualizarInformacoes(dados);
+
+        return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
+    }
+
+    @PutMapping("/senha")
+    @Transactional
+    public ResponseEntity alterarSenha(
+            @RequestBody @Valid DadosAlterarSenha dados,
+            HttpServletRequest request) {
+
+        String token = request.getHeader("Authorization").substring(7);
+        Long idLogado = tokenService.getUserId(token);
+
+        Usuario usuario = usuarioRepository.findById(idLogado)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        // Valida senha atual
+        if (!passwordEncoder.matches(dados.senhaAtual(), usuario.getSenha())) {
+            return ResponseEntity.status(400).body("Senha atual incorreta");
+        }
+
+        usuario.setSenha(passwordEncoder.encode(dados.novaSenha()));
+        return ResponseEntity.noContent().build();
     }
 
 

@@ -28,6 +28,10 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
         """)
     Optional<Cliente> findByUsuarioId(Long usuarioId);
 
+    boolean existsByCpf(String cpf);
+
+    Optional<Cliente> findByEmail(String email);
+
 
 
 }

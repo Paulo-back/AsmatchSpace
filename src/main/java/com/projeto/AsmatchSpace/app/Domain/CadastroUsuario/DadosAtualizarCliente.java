@@ -5,13 +5,17 @@ import com.projeto.AsmatchSpace.app.Domain.endereco.Endereco;
 import jakarta.persistence.Embedded;
 import jakarta.validation.Valid;
 
+import java.time.LocalDate;
+
 public record DadosAtualizarCliente(
-    String nome,
-    String medicamentos,
-    String telefone,
-    String sexo,
-    Integer idade,
+        String nome,
+        String medicamentos,
+        String telefone,
+        String sexo,
+//    Integer idade,
+        LocalDate dataNascimento,
     String problema_respiratorio,
+    String cpf,
     String alergias,
     String contatoEmergencia,
     @Valid
