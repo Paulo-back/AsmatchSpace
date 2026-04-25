@@ -15,6 +15,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
                          AuthenticationException authException) throws IOException {
 
         String path = request.getRequestURI();
+        String contextPath = request.getContextPath();
+        String servletPath = request.getServletPath();
+
+
 
         if (path.startsWith("/actuator") ||
                 path.equals("/login") ||
@@ -27,6 +31,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             response.getWriter().write("{\"status\":\"UP\"}");
             return;
         }
+        System.out.println("==> URI: [" + path + "]");
+        System.out.println("==> ContextPath: [" + contextPath + "]");
+        System.out.println("==> ServletPath: [" + servletPath + "]");
+        System.out.println("==> starts with /actuator: " + path.startsWith("/actuator"));
 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
