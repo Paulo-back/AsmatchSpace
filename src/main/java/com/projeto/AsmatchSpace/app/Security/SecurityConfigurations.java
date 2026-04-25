@@ -36,6 +36,8 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests(req -> req
 
                         // Endpoints totalmente públicos
+                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
                                 "/login",
                                 "/clientes/cadastro",
@@ -44,8 +46,7 @@ public class SecurityConfigurations {
                                 "/auth/recuperar-senha/redefinir",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/swagger-ui/**",
-                                "/actuator/health"
+                                "/swagger-ui/**"
                         ).permitAll()
 
                         // ADMIN apenas

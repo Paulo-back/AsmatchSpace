@@ -16,17 +16,20 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         String path = request.getRequestURI();
 
-        // Rotas públicas não devem retornar 401
         if (path.startsWith("/actuator") ||
                 path.equals("/login") ||
                 path.equals("/clientes/cadastro") ||
-                path.startsWith("/auth/recuperar-senha") ||
+                path.startsWith("/auth/") ||
                 path.startsWith("/swagger-ui") ||
                 path.startsWith("/v3/api-docs")) {
             response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"status\":\"UP\"}");
             return;
         }
 
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Não autorizado");
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error\":\"Não autorizado\"}");
     }
 }
