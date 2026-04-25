@@ -13,6 +13,20 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request, HttpServletResponse response,
                          AuthenticationException authException) throws IOException {
+
+        String path = request.getRequestURI();
+
+        // Rotas públicas não devem retornar 401
+        if (path.startsWith("/actuator") ||
+                path.equals("/login") ||
+                path.equals("/clientes/cadastro") ||
+                path.startsWith("/auth/recuperar-senha") ||
+                path.startsWith("/swagger-ui") ||
+                path.startsWith("/v3/api-docs")) {
+            response.setStatus(HttpServletResponse.SC_OK);
+            return;
+        }
+
         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Não autorizado");
     }
 }
