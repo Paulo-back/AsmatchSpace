@@ -44,7 +44,8 @@ public class SecurityConfigurations {
                                 "/auth/recuperar-senha/redefinir",
                                 "/v3/api-docs/**",
                                 "/swagger-ui.html",
-                                "/swagger-ui/**"
+                                "/swagger-ui/**",
+                                "/actuator/health"
                         ).permitAll()
 
                         // ADMIN apenas
