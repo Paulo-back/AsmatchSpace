@@ -36,9 +36,10 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests(req -> req
 
                         // Endpoints totalmente públicos
-                        .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(
+                                "/",
+                                "/error",
+                                "/actuator/**",
                                 "/login",
                                 "/clientes/cadastro",
                                 "/auth/recuperar-senha/info",
@@ -57,9 +58,9 @@ public class SecurityConfigurations {
                                 "/clientes/atualizar",
                                 "/clientes/inativar/**",
                                 "/clientes/delete/**",
-                                "/lembretes/**",      // ← volte a proteger (ou defina regras mais finas)
-                                "/diario/**" ,
-                                "/relatorios/**"// ← idem
+                                "/lembretes/**",
+                                "/diario/**",
+                                "/relatorios/**"
                         ).authenticated()
 
                         // Qualquer outra rota exige autenticação
