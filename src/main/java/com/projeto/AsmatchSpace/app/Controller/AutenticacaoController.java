@@ -28,12 +28,22 @@ public class AutenticacaoController {
     @PostMapping
     public ResponseEntity efetuarLogin(@RequestBody @Valid DadosAutenticacao dados) {
         try {
-            var authenticationToken = new UsernamePasswordAuthenticationToken(dados.login(), dados.senha());
+            var authenticationToken = new UsernamePasswordAuthenticationToken(
+                    dados.login(), dados.senha());
             var authentication = manager.authenticate(authenticationToken);
 
-            var tokenJWT = tokenService.gerarToken((Usuario) authentication.getPrincipal());
+            var usuario = (Usuario) authentication.getPrincipal();
+            var tokenJWT = tokenService.gerarToken(usuario);
 
-            return ResponseEntity.ok(new DadosTokenJWT(tokenJWT));
+            // Extrai a role e remove o prefixo "ROLE_" antes de enviar pro frontend
+            String role = usuario.getAuthorities()
+                    .stream()
+                    .findFirst()
+                    .map(a -> a.getAuthority().replace("ROLE_", ""))
+                    .orElse("USER");
+
+            return ResponseEntity.ok(new DadosTokenJWT(tokenJWT, role));
+
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body(e.getMessage());
