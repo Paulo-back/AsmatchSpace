@@ -90,55 +90,6 @@ public class ClienteController {
 
 
 
-//ADMINS
-    @PutMapping("/atualizar/{id}")
-    @Transactional
-    public ResponseEntity<DadosDetalhamentoCliente> atualizar(
-            @PathVariable Long id,
-            @RequestBody @Valid DadosAtualizarCliente dados,
-            HttpServletRequest request) {
-
-        // 1 – Extrai e valida o token (igual ao delete)
-        String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
-            return ResponseEntity.status(401).body(null); // ou lance exceção personalizada
-        }
-
-        String token = header.substring(7);
-        Long idLogado = tokenService.getUserId(token);
-
-        // 2 – Pega a role do usuário logado
-        var authentication = SecurityContextHolder.getContext().getAuthentication();
-        String role = authentication.getAuthorities()
-                .stream()
-                .findFirst()
-                .map(GrantedAuthority::getAuthority)
-                .orElse("ROLE_USER");
-
-        Cliente cliente;
-
-        // 3 – ADMIN pode atualizar qualquer cliente pelo ID da path
-        if (role.equals("ROLE_ADMIN")) {
-            cliente = repository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
-        }
-        // 4 – USER só pode atualizar o próprio cliente
-        else {
-            cliente = repository.findByUsuarioId(idLogado)
-                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
-
-            // Validação extra: garante que o ID da path seja o do usuário logado
-            if (!cliente.getId().equals(id)) {
-                return ResponseEntity.status(403).build(); // Forbidden
-            }
-        }
-
-        // 5 – Atualiza os dados
-        cliente.atualizarInformacoes(dados);
-
-        return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
-    }
-
 //PADRAO
     @PutMapping("/atualizar")
     @Transactional
@@ -235,8 +186,8 @@ public class ClienteController {
 //        return ResponseEntity.noContent().build();
 //    }
 
-    //Listar
-    // Opção: listar todos para admin, só ativos para user
+    // 1 ── LISTAGEM
+
     @GetMapping("/listagem")
     public ResponseEntity<Page<?>> listar(
             @PageableDefault(size = 10, sort = {"nome"}) Pageable paginacao,
@@ -244,19 +195,64 @@ public class ClienteController {
 
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         String role = authentication.getAuthorities()
-                .stream()
-                .findFirst()
+                .stream().findFirst()
                 .map(GrantedAuthority::getAuthority)
                 .orElse("ROLE_USER");
 
         if ("ROLE_ADMIN".equals(role)) {
-            var page = repository.findAll(paginacao).map(DadosListagemClientes::new);
+            // Admin vê todos + dados completos (incluindo role e ativo)
+            var page = repository.findAll(paginacao)
+                    .map(DadosDetalhamentoAdmin::new);
             return ResponseEntity.ok(page);
         }
-        var page = repository.findAllByAtivoTrue(paginacao).map(DadosListagemClientes::new);
+
+        // Usuários comuns: só ativos, só dados básicos
+        var page = repository.findAllByAtivoTrue(paginacao)
+                .map(DadosListagemClientes::new);
         return ResponseEntity.ok(page);
     }
 
+    // 2 ── ATUALIZAÇÃO ADMIN
+
+    @PutMapping("/atualizar/{id}")
+    @Transactional
+    public ResponseEntity<DadosDetalhamentoAdmin> atualizar(
+            @PathVariable Long id,
+            @RequestBody @Valid DadosAtualizarCliente dados,
+            HttpServletRequest request) {
+
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String token    = header.substring(7);
+        Long   idLogado = tokenService.getUserId(token);
+
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String role = authentication.getAuthorities()
+                .stream().findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE_USER");
+
+        Cliente cliente;
+
+        if ("ROLE_ADMIN".equals(role)) {
+            cliente = repository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        } else {
+            cliente = repository.findByUsuarioId(idLogado)
+                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+            if (!cliente.getId().equals(id)) {
+                return ResponseEntity.status(403).build();
+            }
+        }
+
+        cliente.atualizarInformacoes(dados);
+
+        return ResponseEntity.ok(new DadosDetalhamentoAdmin(cliente));
+    }
 
 
 }
