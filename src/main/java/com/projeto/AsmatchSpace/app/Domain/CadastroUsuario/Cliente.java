@@ -101,6 +101,10 @@ public class Cliente {
             this.ativo = false;
 
     }
+    public void reativar() {
+        this.ativo = true;
+
+    }
 
     public void atualizarCpf(String cpf) {
         this.cpf = cpf;

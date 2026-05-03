@@ -37,7 +37,7 @@ public record DadosDetalhamentoAdmin(
         this(
                 cliente.getId(),
                 cliente.getNome(),
-                cliente.getEmail(),
+                cliente.getUsuario().getLogin(), // email real de autenticação
                 cliente.getTelefone(),
                 cliente.getCpf(),
                 cliente.getDataNascimento(),

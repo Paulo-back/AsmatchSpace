@@ -1,6 +1,7 @@
 package com.projeto.AsmatchSpace.app.Controller;
 
 import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.*;
+import com.projeto.AsmatchSpace.app.Domain.Usuario.Role;
 import com.projeto.AsmatchSpace.app.Domain.Usuario.Usuario;
 import com.projeto.AsmatchSpace.app.Domain.Usuario.UsuarioRepository;
 import com.projeto.AsmatchSpace.app.Security.TokenService;
@@ -218,7 +219,7 @@ public class ClienteController {
     @Transactional
     public ResponseEntity<DadosDetalhamentoAdmin> atualizar(
             @PathVariable Long id,
-            @RequestBody @Valid DadosAtualizarCliente dados,
+            @RequestBody @Valid DadosAtualizarClienteAdmin dados,
             HttpServletRequest request) {
 
         String header = request.getHeader("Authorization");
@@ -230,26 +231,59 @@ public class ClienteController {
         Long   idLogado = tokenService.getUserId(token);
 
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        String role = authentication.getAuthorities()
+        String roleAtual = authentication.getAuthorities()
                 .stream().findFirst()
                 .map(GrantedAuthority::getAuthority)
                 .orElse("ROLE_USER");
 
-        Cliente cliente;
+        if (!"ROLE_ADMIN".equals(roleAtual)) {
+            return ResponseEntity.status(403).build();
+        }
 
-        if ("ROLE_ADMIN".equals(role)) {
-            cliente = repository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
-        } else {
-            cliente = repository.findByUsuarioId(idLogado)
-                    .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+        Cliente cliente = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-            if (!cliente.getId().equals(id)) {
-                return ResponseEntity.status(403).build();
+        // 1 ── Atualiza campos da entidade Cliente via método existente
+        cliente.atualizarInformacoes(new DadosAtualizarCliente(
+                dados.nome(),
+                dados.medicamentos(),
+                dados.telefone(),
+                dados.sexo(),
+                dados.dataNascimento(),
+                dados.problema_respiratorio(),
+                dados.cpf(),
+                dados.alergias(),
+                dados.contatoEmergencia(),
+                dados.endereco()
+        ));
+
+        // 2 ── Atualiza login (email) no Usuario vinculado
+        if (dados.email() != null && !dados.email().isBlank()) {
+            cliente.getUsuario().setLogin(dados.email());
+        }
+
+        // 3 ── Atualiza role no Usuario — converte String → enum Role
+        if (dados.role() != null && !dados.role().isBlank()) {
+            try {
+                // Frontend envia "ADMIN", "USER", "MEDICO"
+                // O enum armazena "ROLE_ADMIN", "ROLE_USER", "ROLE_MEDICO"
+                String roleStr = dados.role().startsWith("ROLE_")
+                        ? dados.role()
+                        : "ROLE_" + dados.role();
+                cliente.getUsuario().setRole(Role.valueOf(roleStr));
+            } catch (IllegalArgumentException e) {
+                return ResponseEntity.badRequest().build();
             }
         }
 
-        cliente.atualizarInformacoes(dados);
+        // 4 ── Atualiza status ativo no Cliente
+        if (dados.ativo() != null) {
+            if (dados.ativo()) {
+                cliente.reativar();
+            } else {
+                cliente.inativar();
+            }
+        }
 
         return ResponseEntity.ok(new DadosDetalhamentoAdmin(cliente));
     }
