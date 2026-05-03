@@ -33,9 +33,14 @@ public class AutenticacaoController {
             var authentication = manager.authenticate(authenticationToken);
 
             var usuario = (Usuario) authentication.getPrincipal();
+
+            // ✅ Bloqueia login de contas desativadas
+            if (!usuario.getCliente().getAtivo()) {
+                return ResponseEntity.status(403).body("Conta desativada. Entre em contato com o suporte.");
+            }
+
             var tokenJWT = tokenService.gerarToken(usuario);
 
-            // Extrai a role e remove o prefixo "ROLE_" antes de enviar pro frontend
             String role = usuario.getAuthorities()
                     .stream()
                     .findFirst()
