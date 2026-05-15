@@ -1,35 +1,25 @@
 package com.projeto.AsmatchSpace.app.Controller;
 
-import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.Cliente;
 import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.ClienteRepository;
+import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.Cliente;
 import com.projeto.AsmatchSpace.app.Domain.Lembrete.*;
-import com.projeto.AsmatchSpace.app.Domain.Usuario.Usuario;
 import com.projeto.AsmatchSpace.app.Security.TokenService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/lembretes")
 public class LembreteController {
 
-    @Autowired
-    private LembreteService lembreteService;
-    @Autowired
-    private ClienteRepository clienteRepository;
-    @Autowired
-    private TokenService tokenService;
-
-    private static final Logger log = LoggerFactory.getLogger(LembreteController.class);
+    @Autowired private LembreteService lembreteService;
+    @Autowired private ClienteRepository clienteRepository;
+    @Autowired private TokenService tokenService;
 
     private Long getUserId(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
@@ -40,57 +30,64 @@ public class LembreteController {
 
     private Cliente getClienteLogado(Long usuarioId) {
         return clienteRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new RuntimeException("Cliente não encontrado para o usuário logado"));
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
     }
 
-    @PostMapping("/cadastro")
+    // ---- Templates ----
+
+    @PostMapping("/templates")
     @Transactional
-    public ResponseEntity cadastrar(@RequestBody @Valid DadosCadastroLembrete dados, HttpServletRequest request) {
-        Long idUsuario = getUserId(request);
-        Cliente cliente = getClienteLogado(idUsuario);
-
-        var lembrete = lembreteService.cadastrar(dados, cliente);
-        return ResponseEntity.ok(new DadosDetalhamentoLembrete(lembrete));
-    }
-
-    @GetMapping("/listar")
-    public ResponseEntity<Page<DadosListagemLembrete>> listar(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
+    public ResponseEntity<DadosDetalhamentoTemplate> cadastrarTemplate(
+            @RequestBody @Valid DadosCadastroLembreteTemplate dados,
             HttpServletRequest request) {
-
-        Long idUsuario = getUserId(request);
-        Cliente cliente = getClienteLogado(idUsuario);
-
-        Pageable pageable = PageRequest.of(page, size);
-        return ResponseEntity.ok(lembreteService.listar(cliente.getId(), pageable));
+        Cliente cliente = getClienteLogado(getUserId(request));
+        var template = lembreteService.cadastrarTemplate(dados, cliente);
+        return ResponseEntity.ok(new DadosDetalhamentoTemplate(template));
     }
 
-    @PutMapping("/atualizar/{id}")
+    @PutMapping("/templates/{id}")
     @Transactional
-    public ResponseEntity<?> atualizar(
+    public ResponseEntity<DadosDetalhamentoTemplate> atualizarTemplate(
             @PathVariable Long id,
-            @RequestBody @Valid DadosAtualizarLembrete dados,
+            @RequestBody @Valid DadosAtualizarLembreteTemplate dados,
             HttpServletRequest request) {
-
-        Long idUsuario = getUserId(request);
-        Cliente cliente = getClienteLogado(idUsuario);
-
-        // atualizar pode ficar aqui por ora — mover pro service depois se quiser
-        var lembrete = lembreteService.buscarPorId(id, cliente);
-        lembrete.atualizarInformacoes(dados);
-
-        return ResponseEntity.ok(new DadosDetalhamentoLembrete(lembrete));
+        Cliente cliente = getClienteLogado(getUserId(request));
+        var template = lembreteService.buscarTemplatePorId(id, cliente);
+        template.atualizar(dados);
+        return ResponseEntity.ok(new DadosDetalhamentoTemplate(template));
     }
 
-    @DeleteMapping("/deletar/{id}")
+    @DeleteMapping("/templates/{id}")
     @Transactional
-    public ResponseEntity deletar(@PathVariable Long id, HttpServletRequest request) {
-        Long idUsuario = getUserId(request);
-        Cliente cliente = getClienteLogado(idUsuario);
+    public ResponseEntity<Void> deletarTemplate(
+            @PathVariable Long id, HttpServletRequest request) {
+        Cliente cliente = getClienteLogado(getUserId(request));
+        lembreteService.deletarTemplate(id, cliente);
+        return ResponseEntity.noContent().build();
+    }
 
-        lembreteService.deletar(id, cliente);
+    // ---- Instâncias ----
+
+    /**
+     * Android chama este endpoint ao abrir a tela de lembretes.
+     * Gera as instâncias de hoje (se necessário) e retorna a lista do dia.
+     */
+    @PostMapping("/instancias/hoje")
+    @Transactional
+    public ResponseEntity<List<DadosInstanciaDoDia>> instanciasDeHoje(
+            HttpServletRequest request) {
+        Cliente cliente = getClienteLogado(getUserId(request));
+        return ResponseEntity.ok(lembreteService.gerarEListarInstanciasDeHoje(cliente));
+    }
+
+    @PatchMapping("/instancias/{id}/status")
+    @Transactional
+    public ResponseEntity<Void> atualizarStatus(
+            @PathVariable Long id,
+            @RequestParam StatusInstancia status,
+            HttpServletRequest request) {
+        Cliente cliente = getClienteLogado(getUserId(request));
+        lembreteService.atualizarStatus(id, status, cliente);
         return ResponseEntity.noContent().build();
     }
 }
-
