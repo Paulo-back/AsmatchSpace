@@ -21,6 +21,7 @@ public class LembreteTemplate {
     private LocalTime horario;
     private LocalDate dataInicio;
     private LocalDate dataFim;
+    @Transient
     public String statusHoje;
 
     @Enumerated(EnumType.STRING)
