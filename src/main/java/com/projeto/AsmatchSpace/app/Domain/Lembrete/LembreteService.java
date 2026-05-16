@@ -62,6 +62,13 @@ public class LembreteService {
                 .map(DadosInstanciaDoDia::new)
                 .toList();
     }
+    public List<DadosDetalhamentoTemplate> listarTemplates(Long clienteId) {
+        return templateRepository.findAllByClienteId(clienteId)
+                .stream()
+                .map(DadosDetalhamentoTemplate::new)
+                .toList();
+    }
+
 
     public LembreteInstancia atualizarStatus(Long instanciaId, StatusInstancia novoStatus, Cliente cliente) {
         var instancia = instanciaRepository.findById(instanciaId)
