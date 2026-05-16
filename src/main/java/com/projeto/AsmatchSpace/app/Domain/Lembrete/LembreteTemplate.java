@@ -21,6 +21,7 @@ public class LembreteTemplate {
     private LocalTime horario;
     private LocalDate dataInicio;
     private LocalDate dataFim;
+    public String statusHoje;
 
     @Enumerated(EnumType.STRING)
     private TipoRecorrencia tipoRecorrencia = TipoRecorrencia.NENHUMA;

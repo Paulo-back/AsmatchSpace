@@ -63,9 +63,16 @@ public class LembreteService {
                 .toList();
     }
     public List<DadosDetalhamentoTemplate> listarTemplates(Long clienteId) {
+        LocalDate hoje = LocalDate.now();
         return templateRepository.findAllByClienteId(clienteId)
                 .stream()
-                .map(DadosDetalhamentoTemplate::new)
+                .map(t -> {
+                    String statusHoje = instanciaRepository
+                            .findByTemplateIdAndDataInstancia(t.getId(), hoje)
+                            .map(i -> i.getStatus().name())
+                            .orElse(null);
+                    return new DadosDetalhamentoTemplate(t, statusHoje);
+                })
                 .toList();
     }
 

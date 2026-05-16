@@ -10,11 +10,13 @@ public record DadosDetalhamentoTemplate(
         LocalDate dataInicio,
         LocalDate dataFim,
         TipoRecorrencia tipoRecorrencia,
-        String diasSemana
+        String diasSemana,
+        String statusHoje
 ) {
-    public DadosDetalhamentoTemplate(LembreteTemplate t) {
+    public DadosDetalhamentoTemplate(LembreteTemplate t, String statusHoje) {
         this(t.getId(), t.getTitulo(), t.getHorario(),
                 t.getDataInicio(), t.getDataFim(),
-                t.getTipoRecorrencia(), t.getDiasSemana());
+                t.getTipoRecorrencia(), t.getDiasSemana(),
+                statusHoje);
     }
 }
