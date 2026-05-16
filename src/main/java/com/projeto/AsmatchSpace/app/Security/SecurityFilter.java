@@ -55,7 +55,7 @@ public class SecurityFilter extends OncePerRequestFilter {
     private String recuperarToken(HttpServletRequest request) {
         var auth = request.getHeader("Authorization");
         if (auth != null && auth.toLowerCase().startsWith("bearer ")) {
-            return auth.substring(7).trim(); // remove “Bearer “ (7 chars)
+            return auth.substring(7).trim();
         }
         return null;
     }

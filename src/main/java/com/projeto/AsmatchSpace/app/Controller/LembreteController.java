@@ -45,6 +45,14 @@ public class LembreteController {
         return ResponseEntity.ok(new DadosDetalhamentoTemplate(template, null));
     }
 
+    @GetMapping("/templates")
+    public ResponseEntity<List<DadosDetalhamentoTemplate>> listarTemplates(
+            HttpServletRequest request) {
+        Cliente cliente = getClienteLogado(getUserId(request));
+        List<DadosDetalhamentoTemplate> lista = lembreteService.listarTemplates(cliente.getId());
+        return ResponseEntity.ok(lista);
+    }
+
     @PutMapping("/templates/{id}")
     @Transactional
     public ResponseEntity<DadosDetalhamentoTemplate> atualizarTemplate(
