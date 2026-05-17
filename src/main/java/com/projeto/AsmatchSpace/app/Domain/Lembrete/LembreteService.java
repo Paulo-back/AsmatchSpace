@@ -90,4 +90,30 @@ public class LembreteService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Você não tem permissão para acessar este recurso.");
     }
+
+    public List<DadosInstanciaDoDia> gerarEListarInstanciasPorPeriodo(Cliente cliente, int dias) {
+        LocalDate hoje = LocalDate.now();
+        LocalDate inicio = hoje.minusDays(dias - 1);
+        List<LembreteTemplate> templates = templateRepository.findAllByClienteId(cliente.getId());
+
+        // Gera instâncias para cada dia do período, para cada template ativo
+        for (LocalDate data = inicio; !data.isAfter(hoje); data = data.plusDays(1)) {
+            for (LembreteTemplate t : templates) {
+                if (t.ativoEm(data)) {
+                    boolean jaExiste = instanciaRepository
+                            .findByTemplateIdAndDataInstancia(t.getId(), data)
+                            .isPresent();
+                    if (!jaExiste)
+                        instanciaRepository.save(new LembreteInstancia(t, data));
+                }
+            }
+        }
+
+        return instanciaRepository
+                .findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
+                        cliente.getId(), inicio, hoje)
+                .stream()
+                .map(DadosInstanciaDoDia::new)
+                .toList();
+    }
 }

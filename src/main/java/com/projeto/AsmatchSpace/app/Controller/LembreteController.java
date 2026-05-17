@@ -53,6 +53,15 @@ public class LembreteController {
         return ResponseEntity.ok(lista);
     }
 
+    @GetMapping("/instancias")
+    @Transactional
+    public ResponseEntity<List<DadosInstanciaDoDia>> instanciasPorPeriodo(
+            @RequestParam(defaultValue = "7") int dias,
+            HttpServletRequest request) {
+        Cliente cliente = getClienteLogado(getUserId(request));
+        return ResponseEntity.ok(lembreteService.gerarEListarInstanciasPorPeriodo(cliente, dias));
+    }
+
     @PutMapping("/templates/{id}")
     @Transactional
     public ResponseEntity<DadosDetalhamentoTemplate> atualizarTemplate(
