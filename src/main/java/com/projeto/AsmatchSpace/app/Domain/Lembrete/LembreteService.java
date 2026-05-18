@@ -97,21 +97,36 @@ public class LembreteService {
         LocalDate inicio = hoje.minusDays(diasPassados);
 
         List<LembreteTemplate> templates = templateRepository.findAllByClienteId(cliente.getId());
+        if (templates.isEmpty())
+            return List.of();
 
-        // Gera instâncias do passado até hoje (idempotente)
+        List<Long> templateIds = templates.stream()
+                .map(LembreteTemplate::getId)
+                .toList();
+
+        // 1 query para buscar TODAS as instâncias já existentes no período
+        List<LembreteInstancia> existentes = instanciaRepository
+                .findAllByTemplateIdInAndDataInstanciaBetween(templateIds, inicio, hoje);
+
+        // Monta Set para checagem O(1): "templateId|data"
+        java.util.Set<String> chaves = new java.util.HashSet<>();
+        for (LembreteInstancia i : existentes)
+            chaves.add(i.getTemplate().getId() + "|" + i.getDataInstancia());
+
+        // Gera apenas as que faltam — sem queries individuais
+        List<LembreteInstancia> novas = new ArrayList<>();
         for (LocalDate data = inicio; !data.isAfter(hoje); data = data.plusDays(1)) {
             for (LembreteTemplate t : templates) {
-                if (t.ativoEm(data)) {
-                    boolean jaExiste = instanciaRepository
-                            .findByTemplateIdAndDataInstancia(t.getId(), data)
-                            .isPresent();
-                    if (!jaExiste)
-                        instanciaRepository.save(new LembreteInstancia(t, data));
+                if (t.ativoEm(data) && !chaves.contains(t.getId() + "|" + data)) {
+                    novas.add(new LembreteInstancia(t, data));
                 }
             }
         }
 
-        // Retorna só passado + hoje — sem futuro
+        if (!novas.isEmpty())
+            instanciaRepository.saveAll(novas);  // 1 batch insert
+
+        // Retorna do banco ordenado
         return instanciaRepository
                 .findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
                         cliente.getId(), inicio, hoje)

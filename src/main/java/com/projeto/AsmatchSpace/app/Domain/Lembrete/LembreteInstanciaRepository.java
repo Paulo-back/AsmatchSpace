@@ -17,4 +17,7 @@ public interface LembreteInstanciaRepository extends JpaRepository<LembreteInsta
 
     List<LembreteInstancia> findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
             Long clienteId, LocalDate inicio, LocalDate fim);
+
+    List<LembreteInstancia> findAllByTemplateIdInAndDataInstanciaBetween(
+            List<Long> templateIds, LocalDate inicio, LocalDate fim);
 }
