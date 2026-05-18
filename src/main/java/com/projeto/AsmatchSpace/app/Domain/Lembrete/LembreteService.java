@@ -86,22 +86,19 @@ public class LembreteService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Você não tem permissão para acessar este recurso.");
     }
-
     /**
-     * Passado (inicio..hoje): gera instâncias que ainda não existem e lista do banco.
-     * Futuro (amanhã..fim): NÃO persiste — monta DTOs a partir dos templates ativos.
-     * Isso evita gerar 30×N rows de uma vez e estoura o Render free tier.
+     * Padrão: diasPassados=7, diasFuturos=0 (só hoje como "futuro").
+     * O botão de filtro controla apenas diasPassados.
      */
     public List<DadosInstanciaDoDia> gerarEListarInstanciasPorPeriodo(
-            Cliente cliente, int diasPassados, int diasFuturos) {
+            Cliente cliente, int diasPassados) {
 
         LocalDate hoje   = LocalDate.now();
         LocalDate inicio = hoje.minusDays(diasPassados);
-        LocalDate fim    = hoje.plusDays(diasFuturos);
 
         List<LembreteTemplate> templates = templateRepository.findAllByClienteId(cliente.getId());
 
-        // 1. Gera instâncias do passado até hoje (idempotente)
+        // Gera instâncias do passado até hoje (idempotente)
         for (LocalDate data = inicio; !data.isAfter(hoje); data = data.plusDays(1)) {
             for (LembreteTemplate t : templates) {
                 if (t.ativoEm(data)) {
@@ -114,33 +111,12 @@ public class LembreteService {
             }
         }
 
-        // 2. Busca instâncias persistidas (passado + hoje)
-        List<DadosInstanciaDoDia> resultado = new ArrayList<>(
-                instanciaRepository
-                        .findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
-                                cliente.getId(), inicio, hoje)
-                        .stream()
-                        .map(DadosInstanciaDoDia::new)
-                        .toList()
-        );
-
-        // 3. Monta DTOs futuros a partir dos templates — sem persistir
-        for (LocalDate data = hoje.plusDays(1); !data.isAfter(fim); data = data.plusDays(1)) {
-            final LocalDate dataFinal = data;
-            for (LembreteTemplate t : templates) {
-                if (t.ativoEm(dataFinal)) {
-                    // Cria instância temporária só para montar o DTO — não salva
-                    LembreteInstancia virtual = new LembreteInstancia(t, dataFinal);
-                    resultado.add(new DadosInstanciaDoDia(virtual));
-                }
-            }
-        }
-
-        // 4. Ordena tudo: futuro primeiro (datas maiores no topo), depois horário
-        resultado.sort(Comparator
-                .comparing(DadosInstanciaDoDia::data).reversed()
-                .thenComparing(DadosInstanciaDoDia::horario));
-
-        return resultado;
+        // Retorna só passado + hoje — sem futuro
+        return instanciaRepository
+                .findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
+                        cliente.getId(), inicio, hoje)
+                .stream()
+                .map(DadosInstanciaDoDia::new)
+                .toList();
     }
-}
+    }
