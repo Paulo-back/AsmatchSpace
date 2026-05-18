@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -45,9 +47,8 @@ public class LembreteService {
                 boolean jaExiste = instanciaRepository
                         .findByTemplateIdAndDataInstancia(t.getId(), hoje)
                         .isPresent();
-                if (!jaExiste) {
+                if (!jaExiste)
                     instanciaRepository.save(new LembreteInstancia(t, hoje));
-                }
             }
         }
 
@@ -87,23 +88,20 @@ public class LembreteService {
     }
 
     /**
-     * Gera e lista instâncias dentro de uma janela:
-     *   [hoje - diasPassados ... hoje + diasFuturos]
-     *
-     * Geração só ocorre para o passado até hoje (não faz sentido gerar o futuro
-     * porque o status ainda é desconhecido — elas serão geradas no próprio dia).
-     * Para datas futuras, apenas lista os templates ativos (sem persistir instância).
+     * Passado (inicio..hoje): gera instâncias que ainda não existem e lista do banco.
+     * Futuro (amanhã..fim): NÃO persiste — monta DTOs a partir dos templates ativos.
+     * Isso evita gerar 30×N rows de uma vez e estoura o Render free tier.
      */
     public List<DadosInstanciaDoDia> gerarEListarInstanciasPorPeriodo(
             Cliente cliente, int diasPassados, int diasFuturos) {
 
-        LocalDate hoje  = LocalDate.now();
+        LocalDate hoje   = LocalDate.now();
         LocalDate inicio = hoje.minusDays(diasPassados);
         LocalDate fim    = hoje.plusDays(diasFuturos);
 
         List<LembreteTemplate> templates = templateRepository.findAllByClienteId(cliente.getId());
 
-        // Gera instâncias apenas do passado até hoje (inclusive)
+        // 1. Gera instâncias do passado até hoje (idempotente)
         for (LocalDate data = inicio; !data.isAfter(hoje); data = data.plusDays(1)) {
             for (LembreteTemplate t : templates) {
                 if (t.ativoEm(data)) {
@@ -116,24 +114,33 @@ public class LembreteService {
             }
         }
 
-        // Gera instâncias futuras (amanhã em diante) — sem duplicar
+        // 2. Busca instâncias persistidas (passado + hoje)
+        List<DadosInstanciaDoDia> resultado = new ArrayList<>(
+                instanciaRepository
+                        .findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
+                                cliente.getId(), inicio, hoje)
+                        .stream()
+                        .map(DadosInstanciaDoDia::new)
+                        .toList()
+        );
+
+        // 3. Monta DTOs futuros a partir dos templates — sem persistir
         for (LocalDate data = hoje.plusDays(1); !data.isAfter(fim); data = data.plusDays(1)) {
+            final LocalDate dataFinal = data;
             for (LembreteTemplate t : templates) {
-                if (t.ativoEm(data)) {
-                    boolean jaExiste = instanciaRepository
-                            .findByTemplateIdAndDataInstancia(t.getId(), data)
-                            .isPresent();
-                    if (!jaExiste)
-                        instanciaRepository.save(new LembreteInstancia(t, data));
+                if (t.ativoEm(dataFinal)) {
+                    // Cria instância temporária só para montar o DTO — não salva
+                    LembreteInstancia virtual = new LembreteInstancia(t, dataFinal);
+                    resultado.add(new DadosInstanciaDoDia(virtual));
                 }
             }
         }
 
-        return instanciaRepository
-                .findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
-                        cliente.getId(), inicio, fim)
-                .stream()
-                .map(DadosInstanciaDoDia::new)
-                .toList();
+        // 4. Ordena tudo: futuro primeiro (datas maiores no topo), depois horário
+        resultado.sort(Comparator
+                .comparing(DadosInstanciaDoDia::data).reversed()
+                .thenComparing(DadosInstanciaDoDia::horario));
+
+        return resultado;
     }
 }

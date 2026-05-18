@@ -91,7 +91,7 @@ public class LembreteController {
      * Android chama este endpoint ao abrir a tela de lembretes.
      * Gera as instâncias de hoje (se necessário) e retorna a lista do dia.
      */
-    @PostMapping("/instancias/hoje")
+    @GetMapping("/instancias/hoje")
     @Transactional
     public ResponseEntity<List<DadosInstanciaDoDia>> instanciasDeHoje(
             HttpServletRequest request) {

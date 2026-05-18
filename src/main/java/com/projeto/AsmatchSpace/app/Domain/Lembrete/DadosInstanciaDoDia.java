@@ -19,4 +19,6 @@ public record DadosInstanciaDoDia(
                 i.getDataInstancia(),
                 i.getStatus());
     }
+
+
 }
