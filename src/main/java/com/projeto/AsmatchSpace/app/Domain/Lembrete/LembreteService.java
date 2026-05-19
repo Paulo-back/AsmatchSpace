@@ -7,12 +7,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 @Service
 public class LembreteService {
+
+    private static final ZoneId ZONA_BR = ZoneId.of("America/Sao_Paulo");
 
     @Autowired private LembreteTemplateRepository templateRepository;
     @Autowired private LembreteInstanciaRepository instanciaRepository;
@@ -39,7 +41,7 @@ public class LembreteService {
     // --- Instâncias ---
 
     public List<DadosInstanciaDoDia> gerarEListarInstanciasDeHoje(Cliente cliente) {
-        LocalDate hoje = LocalDate.now();
+        LocalDate hoje = LocalDate.now(ZONA_BR);
         List<LembreteTemplate> templates = templateRepository.findAllByClienteId(cliente.getId());
 
         for (LembreteTemplate t : templates) {
@@ -60,7 +62,7 @@ public class LembreteService {
     }
 
     public List<DadosDetalhamentoTemplate> listarTemplates(Long clienteId) {
-        LocalDate hoje = LocalDate.now();
+        LocalDate hoje = LocalDate.now(ZONA_BR);
         return templateRepository.findAllByClienteId(clienteId)
                 .stream()
                 .map(t -> {
@@ -86,14 +88,11 @@ public class LembreteService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                     "Você não tem permissão para acessar este recurso.");
     }
-    /**
-     * Padrão: diasPassados=7, diasFuturos=0 (só hoje como "futuro").
-     * O botão de filtro controla apenas diasPassados.
-     */
+
     public List<DadosInstanciaDoDia> gerarEListarInstanciasPorPeriodo(
             Cliente cliente, int diasPassados) {
 
-        LocalDate hoje   = LocalDate.now();
+        LocalDate hoje   = LocalDate.now(ZONA_BR);
         LocalDate inicio = hoje.minusDays(diasPassados);
 
         List<LembreteTemplate> templates = templateRepository.findAllByClienteId(cliente.getId());
@@ -104,16 +103,16 @@ public class LembreteService {
                 .map(LembreteTemplate::getId)
                 .toList();
 
-        // 1 query para buscar TODAS as instâncias já existentes no período
+        // 1 query para buscar todas as instâncias já existentes no período
         List<LembreteInstancia> existentes = instanciaRepository
                 .findAllByTemplateIdInAndDataInstanciaBetween(templateIds, inicio, hoje);
 
-        // Monta Set para checagem O(1): "templateId|data"
+        // Set para checagem O(1): "templateId|data"
         java.util.Set<String> chaves = new java.util.HashSet<>();
         for (LembreteInstancia i : existentes)
             chaves.add(i.getTemplate().getId() + "|" + i.getDataInstancia());
 
-        // Gera apenas as que faltam — sem queries individuais
+        // Gera apenas as que faltam
         List<LembreteInstancia> novas = new ArrayList<>();
         for (LocalDate data = inicio; !data.isAfter(hoje); data = data.plusDays(1)) {
             for (LembreteTemplate t : templates) {
@@ -124,9 +123,8 @@ public class LembreteService {
         }
 
         if (!novas.isEmpty())
-            instanciaRepository.saveAll(novas);  // 1 batch insert
+            instanciaRepository.saveAll(novas);
 
-        // Retorna do banco ordenado
         return instanciaRepository
                 .findAllByTemplateClienteIdAndDataInstanciaBetweenOrderByDataInstanciaDescHorarioEfetivoAsc(
                         cliente.getId(), inicio, hoje)
@@ -134,4 +132,4 @@ public class LembreteService {
                 .map(DadosInstanciaDoDia::new)
                 .toList();
     }
-    }
+}
