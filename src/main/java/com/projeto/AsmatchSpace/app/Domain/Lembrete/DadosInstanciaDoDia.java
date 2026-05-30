@@ -9,7 +9,8 @@ public record DadosInstanciaDoDia(
         String titulo,
         LocalTime horario,
         LocalDate data,
-        StatusInstancia status
+        StatusInstancia status,
+        String tipoRecorrencia
 ) {
     public DadosInstanciaDoDia(LembreteInstancia i) {
         this(i.getId(),
@@ -17,8 +18,9 @@ public record DadosInstanciaDoDia(
                 i.getTemplate().getTitulo(),
                 i.getHorarioEfetivo(),
                 i.getDataInstancia(),
-                i.getStatus());
+                i.getStatus(),
+                i.getTemplate().getTipoRecorrencia() != null
+                        ? i.getTemplate().getTipoRecorrencia().name()
+                        : "NENHUMA");
     }
-
-
 }
