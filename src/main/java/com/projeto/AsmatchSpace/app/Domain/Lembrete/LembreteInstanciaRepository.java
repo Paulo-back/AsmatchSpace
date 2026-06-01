@@ -20,4 +20,6 @@ public interface LembreteInstanciaRepository extends JpaRepository<LembreteInsta
 
     List<LembreteInstancia> findAllByTemplateIdInAndDataInstanciaBetween(
             List<Long> templateIds, LocalDate inicio, LocalDate fim);
+
+    void deleteByTemplateIdAndDataInstanciaGreaterThanEqual(Long templateId, LocalDate data);
 }

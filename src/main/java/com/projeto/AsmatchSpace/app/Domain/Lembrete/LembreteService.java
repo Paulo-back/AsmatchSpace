@@ -132,4 +132,30 @@ public class LembreteService {
                 .map(DadosInstanciaDoDia::new)
                 .toList();
     }
+    // Apaga só a instância de um dia específico
+    public void deletarInstancia(Long instanciaId, Cliente cliente) {
+        var instancia = instanciaRepository.findById(instanciaId)
+                .orElseThrow(() -> new RuntimeException("Instância não encontrada"));
+        verificarDono(instancia.getTemplate().getCliente().getId(), cliente.getId());
+        instanciaRepository.delete(instancia);
+    }
+
+    // Apaga esta e todas as futuras — mantém histórico passado
+    public void deletarInstanciaEFuturas(Long instanciaId, Cliente cliente) {
+        var instancia = instanciaRepository.findById(instanciaId)
+                .orElseThrow(() -> new RuntimeException("Instância não encontrada"));
+        verificarDono(instancia.getTemplate().getCliente().getId(), cliente.getId());
+
+        LocalDate dataCorte = instancia.getDataInstancia();
+        Long templateId = instancia.getTemplate().getId();
+
+        // Remove instâncias a partir desta data
+        instanciaRepository.deleteByTemplateIdAndDataInstanciaGreaterThanEqual(templateId, dataCorte);
+
+        // Encerra o template nesta data para não gerar mais instâncias futuras
+        var template = instancia.getTemplate();
+        template.setDataFim(dataCorte.minusDays(1));
+        templateRepository.save(template);
+    }
+
 }

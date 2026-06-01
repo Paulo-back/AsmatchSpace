@@ -84,12 +84,29 @@ public class LembreteController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/instancias/{id}")
+    @Transactional
+    public ResponseEntity<Void> deletarInstancia(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+        Cliente cliente = getClienteLogado(getUserId(request));
+        lembreteService.deletarInstancia(id, cliente);
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/instancias/{id}/futuras")
+    @Transactional
+    public ResponseEntity<Void> deletarInstanciaEFuturas(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+        Cliente cliente = getClienteLogado(getUserId(request));
+        lembreteService.deletarInstanciaEFuturas(id, cliente);
+        return ResponseEntity.noContent().build();
+    }
+
     // ---- Instâncias ----
 
-    /**
-     * Android chama este endpoint ao abrir a tela de lembretes.
-     * Gera as instâncias de hoje (se necessário) e retorna a lista do dia.
-     */
+
     @GetMapping("/instancias/hoje")
     @Transactional
     public ResponseEntity<List<DadosInstanciaDoDia>> instanciasDeHoje(
