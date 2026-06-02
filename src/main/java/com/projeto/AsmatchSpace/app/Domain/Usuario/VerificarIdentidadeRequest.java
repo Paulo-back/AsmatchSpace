@@ -10,28 +10,17 @@ public class VerificarIdentidadeRequest {
     @NotBlank
     private String email;
 
-    @NotNull
-    private LocalDate dataNascimento;
+    @NotBlank
+    private String dataNascimento;
 
-    private String cpf; // opcional
+    private String cpf;
 
-    public String getEmail() {
-        return email;
-    }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    public String getDataNascimento() { return dataNascimento; }
+    public void setDataNascimento(String dataNascimento) { this.dataNascimento = dataNascimento; }
 
-    public LocalDate getDataNascimento() { return dataNascimento; }
-
-    public void setDataNascimento(LocalDate d) { this.dataNascimento = d; }
-
-    public String getCpf() {
-        return cpf;
-    }
-
-    public void setCpf(String cpf) {
-        this.cpf = cpf;
-    }
+    public String getCpf() { return cpf; }
+    public void setCpf(String cpf) { this.cpf = cpf; }
 }

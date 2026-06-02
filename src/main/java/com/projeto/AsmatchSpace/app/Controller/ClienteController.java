@@ -177,17 +177,7 @@ public class ClienteController {
     }
 
 
-//    @DeleteMapping("/delete/{id}")
-//    @Transactional
-//    public ResponseEntity deletar(@PathVariable Long id){
-//
-//        var cliente = repository.getReferenceById(id);
-//        repository.delete(cliente);
-//
-//        return ResponseEntity.noContent().build();
-//    }
 
-    // 1 ── LISTAGEM
 
     @GetMapping("/listagem")
     public ResponseEntity<Page<?>> listar(
@@ -265,8 +255,6 @@ public class ClienteController {
         // 3 ── Atualiza role no Usuario — converte String → enum Role
         if (dados.role() != null && !dados.role().isBlank()) {
             try {
-                // Frontend envia "ADMIN", "USER", "MEDICO"
-                // O enum armazena "ROLE_ADMIN", "ROLE_USER", "ROLE_MEDICO"
                 String roleStr = dados.role().startsWith("ROLE_")
                         ? dados.role()
                         : "ROLE_" + dados.role();

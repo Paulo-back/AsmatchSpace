@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -55,7 +56,15 @@ public class AuthService {
 
         Cliente cliente = opt.get();
 
-        if (!cliente.getDataNascimento().equals(req.getDataNascimento())) {
+        LocalDate dataNascimentoReq;
+        try {
+            dataNascimentoReq = LocalDate.parse(req.getDataNascimento());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Formato de data inválido. Use yyyy-MM-dd.");
+        }
+
+        if (!cliente.getDataNascimento().equals(dataNascimentoReq)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body("Dados não conferem com nosso cadastro.");
         }
@@ -65,7 +74,6 @@ public class AuthService {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body("Dados não conferem com nosso cadastro.");
             }
-            // Normaliza ambos os lados antes de comparar
             String cpfBanco = cliente.getCpf().replaceAll("[^0-9]", "");
             String cpfReq   = req.getCpf().replaceAll("[^0-9]", "");
             if (!cpfBanco.equals(cpfReq)) {
