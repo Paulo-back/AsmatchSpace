@@ -5,20 +5,20 @@ import com.lowagie.text.pdf.*;
 
 public class RodapePagina extends PdfPageEventHelper {
 
-    Font font = new Font(Font.HELVETICA, 8);
+    Font font = new Font(Font.HELVETICA, 8, Font.NORMAL, new java.awt.Color(120, 120, 120));
 
     @Override
     public void onEndPage(PdfWriter writer, Document document) {
-        Phrase rodape = new Phrase(
-                "Página " + writer.getPageNumber(),
-                font
-        );
+        Rectangle page = document.getPageSize();
+        float centerX = (page.getLeft() + page.getRight()) / 2;
 
         ColumnText.showTextAligned(
                 writer.getDirectContent(),
                 Element.ALIGN_CENTER,
-                rodape,
-                300, 20, 0
+                new Phrase("Página " + writer.getPageNumber(), font),
+                centerX,
+                page.getBottom() + 20,
+                0
         );
     }
 }
