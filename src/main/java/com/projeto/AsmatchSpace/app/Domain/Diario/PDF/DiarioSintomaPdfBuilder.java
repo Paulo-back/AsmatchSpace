@@ -66,7 +66,7 @@ public class DiarioSintomaPdfBuilder {
                     : dados.get(0).getCliente().getNome();
 
             Font pacienteFont = new Font(Font.HELVETICA, 11, Font.NORMAL, new Color(70, 70, 70));
-            Paragraph paciente = new Paragraph("Paciente: " + nomeCliente, pacienteFont);
+            Paragraph paciente = new Paragraph("Cliente: " + nomeCliente, pacienteFont);
             paciente.setSpacingAfter(12f);
             doc.add(paciente);
 
