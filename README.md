@@ -31,7 +31,7 @@ API REST do **Asthma Space** — aplicativo de gestão e bem-estar respiratório
    App Android ──┐
                  ├──── REST + JWT ────▶  Spring Boot (Render)
    Painel Admin ─┘                            │
-                                              ├──▶ PostgreSQL (Railway)
+                                              ├──▶ PostgreSQL (Neon)
                                               ├──▶ OpenWeather Air Pollution API
                                               └──▶ ViaCEP
 ```
@@ -41,7 +41,7 @@ API REST do **Asthma Space** — aplicativo de gestão e bem-estar respiratório
 ## 🛠️ Stack e principais decisões
 
 - **Spring Boot** com **Spring Security**: autenticação stateless via **JWT** e senhas com **BCrypt** — sem sessão no servidor, o que permite reciclagem de instâncias no free tier sem impacto
-- **PostgreSQL** hospedado no **Railway**, com schema 100% versionado em migrações **Flyway** — recriar o banco em qualquer ambiente é executar a aplicação uma vez
+- **PostgreSQL** hospedado no **Neon**, com schema 100% versionado em migrações **Flyway** — recriar o banco em qualquer ambiente é executar a aplicação uma vez
 - **Controle de acesso por perfil**: `ADMIN` (painel web) e `USER` (app)
 - **JPA/Hibernate** com queries otimizadas em lote para respeitar os limites do free tier
 - **Geração de PDF** com OpenPDF (relatórios do diário de sintomas)
