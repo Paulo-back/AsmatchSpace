@@ -37,6 +37,13 @@ public class SecurityFilter extends OncePerRequestFilter {
                 Usuario usuario = repository.findByLogin(login)
                         .orElseThrow(() -> new UsernameNotFoundException("Usuário não encontrado: " + login));
 
+                // Invalida tokens emitidos antes da última troca de senha
+                if (tokenEmitidoAntesDaTrocaDeSenha(tokenJWT, usuario)) {
+                    SecurityContextHolder.clearContext();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 var authentication = new UsernamePasswordAuthenticationToken(
                         usuario, null, usuario.getAuthorities());
 
@@ -45,7 +52,6 @@ public class SecurityFilter extends OncePerRequestFilter {
             } catch (Exception e) {
                 // Token inválido, expirado ou usuário não existe mais
                 SecurityContextHolder.clearContext();
-                // Opcional: logger.warn("Falha na autenticação JWT", e);
             }
         }
 
@@ -58,6 +64,23 @@ public class SecurityFilter extends OncePerRequestFilter {
             return auth.substring(7).trim();
         }
         return null;
+    }
+
+    private boolean tokenEmitidoAntesDaTrocaDeSenha(String tokenJWT, Usuario usuario) {
+        var senhaAlteradaEm = usuario.getSenhaAlteradaEm();
+        if (senhaAlteradaEm == null) return false; // nunca trocou desde a feature
+
+        var iat = tokenService.getIssuedAt(tokenJWT);
+        if (iat == null) return false; // token antigo, sem iat — não invalida
+
+        // Converte a troca de senha (gravada em horário de SP) para Instant
+        var trocaInstant = senhaAlteradaEm
+                .atZone(java.time.ZoneId.of("America/Sao_Paulo"))
+                .toInstant();
+
+        // Margem de 5s: o iat trunca para segundos, e login logo após a troca
+        // pode gerar token no mesmo segundo — sem margem, seria falso positivo
+        return iat.isBefore(trocaInstant.minusSeconds(5));
     }
 
 }

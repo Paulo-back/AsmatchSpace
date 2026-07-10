@@ -127,6 +127,7 @@ public class ClienteController {
         }
 
         usuario.setSenha(passwordEncoder.encode(dados.novaSenha()));
+        usuario.registrarTrocaDeSenha();
         return ResponseEntity.noContent().build();
     }
 

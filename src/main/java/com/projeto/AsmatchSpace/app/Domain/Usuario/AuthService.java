@@ -76,6 +76,7 @@ public class AuthService {
 
         Usuario usuario = opt.get().getUsuario();
         usuario.setSenha(passwordEncoder.encode(req.novaSenha()));
+        usuario.registrarTrocaDeSenha();
         usuario.limparCodigoRecuperacao(); // uso único
 
         return ResponseEntity.ok(Map.of("mensagem", "Senha redefinida com sucesso."));

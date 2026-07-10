@@ -34,6 +34,8 @@ public class Usuario implements UserDetails {
 
     private java.time.LocalDateTime codigoExpiracao;
 
+    private java.time.LocalDateTime senhaAlteradaEm;
+
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL)
     private Cliente cliente;
 
@@ -95,6 +97,11 @@ public class Usuario implements UserDetails {
                 && this.codigoExpiracao != null
                 && this.codigoExpiracao.isAfter(java.time.LocalDateTime.now(
                 java.time.ZoneId.of("America/Sao_Paulo")));
+    }
+
+    public void registrarTrocaDeSenha() {
+        this.senhaAlteradaEm = java.time.LocalDateTime.now(
+                java.time.ZoneId.of("America/Sao_Paulo"));
     }
 }
 

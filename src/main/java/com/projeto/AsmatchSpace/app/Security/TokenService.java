@@ -27,6 +27,7 @@ public class TokenService {
                     .withSubject(usuario.getUsername())
                     .withClaim("id", usuario.getId())
                     .withClaim("role", usuario.getRole().name())
+                    .withIssuedAt(Instant.now())
                     .withExpiresAt(dataExpiracao())
                     .sign(algoritmo);
         } catch (JWTCreationException exception){
@@ -59,6 +60,21 @@ public class TokenService {
             return decoded.getClaim("id").asLong();
         } catch (JWTVerificationException exception){
             throw new RuntimeException("Token JWT inválido ou expirdo!" + tokenJWT);
+        }
+    }
+
+    public Instant getIssuedAt(String tokenJWT) {
+        try {
+            var algoritmo = Algorithm.HMAC256(secret);
+            var decoded = JWT.require(algoritmo)
+                    .withIssuer("API AsmatchSpace")
+                    .build()
+                    .verify(tokenJWT);
+
+            Date iat = decoded.getIssuedAt();
+            return iat != null ? iat.toInstant() : null;
+        } catch (JWTVerificationException exception) {
+            throw new RuntimeException("Token JWT inválido ou expirado! " + tokenJWT);
         }
     }
 
