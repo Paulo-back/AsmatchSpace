@@ -250,6 +250,7 @@ public class ClienteController {
         // 2 ── Atualiza login (email) no Usuario vinculado
         if (dados.email() != null && !dados.email().isBlank()) {
             cliente.getUsuario().setLogin(dados.email());
+            cliente.atualizarEmail(dados.email());
         }
 
         // 3 ── Atualiza role no Usuario — converte String → enum Role

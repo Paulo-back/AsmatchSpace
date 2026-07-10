@@ -30,6 +30,10 @@ public class Usuario implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
+    private String codigoRecuperacao;
+
+    private java.time.LocalDateTime codigoExpiracao;
+
     @OneToOne(mappedBy = "usuario", cascade = CascadeType.ALL)
     private Cliente cliente;
 
@@ -75,12 +79,22 @@ public class Usuario implements UserDetails {
         return true;
     }
 
-//    public Long getId() {
-//        return id;
-//    }
-//
-//    public void setId(Long id) {
-//        this.id = id;
-//    }
+    public void definirCodigoRecuperacao(String codigo, java.time.LocalDateTime expiracao) {
+        this.codigoRecuperacao = codigo;
+        this.codigoExpiracao = expiracao;
+    }
+
+    public void limparCodigoRecuperacao() {
+        this.codigoRecuperacao = null;
+        this.codigoExpiracao = null;
+    }
+
+    public boolean codigoValido(String codigo) {
+        return this.codigoRecuperacao != null
+                && this.codigoRecuperacao.equals(codigo)
+                && this.codigoExpiracao != null
+                && this.codigoExpiracao.isAfter(java.time.LocalDateTime.now(
+                java.time.ZoneId.of("America/Sao_Paulo")));
+    }
 }
 

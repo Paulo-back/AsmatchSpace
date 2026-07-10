@@ -2,116 +2,82 @@ package com.projeto.AsmatchSpace.app.Domain.Usuario;
 
 import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.Cliente;
 import com.projeto.AsmatchSpace.app.Domain.CadastroUsuario.ClienteRepository;
+import com.projeto.AsmatchSpace.app.Security.EmailService;
+import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.util.HashMap;
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class AuthService {
 
+    private static final ZoneId ZONA_SP = ZoneId.of("America/Sao_Paulo");
+    private static final int VALIDADE_CODIGO_MINUTOS = 15;
+    private static final int INTERVALO_REENVIO_SEGUNDOS = 60;
+
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
+    private final SecureRandom random = new SecureRandom();
 
-    private final Map<String, String> tokenRedefinicaoMap = new ConcurrentHashMap<>();
-    private final Map<String, Long>   tokenExpiracaoMap   = new ConcurrentHashMap<>();
-    private static final long TTL_MS = 15 * 60 * 1000L;
-
-    public AuthService(ClienteRepository clienteRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(ClienteRepository clienteRepository,
+                       PasswordEncoder passwordEncoder,
+                       EmailService emailService) {
         this.clienteRepository = clienteRepository;
-        this.passwordEncoder   = passwordEncoder;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
 
-    public ResponseEntity<?> consultarInfoRecuperacao(String email) {
+    @Transactional
+    public ResponseEntity<?> solicitarCodigoRecuperacao(String email) {
         Optional<Cliente> opt = clienteRepository.findByEmail(email);
 
-        if (opt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body("E-mail não encontrado.");
+        if (opt.isPresent()) {
+            Usuario usuario = opt.get().getUsuario();
+            LocalDateTime agora = LocalDateTime.now(ZONA_SP);
+
+            // Rate limit simples: bloqueia reenvio antes de 60s
+            if (usuario.getCodigoExpiracao() != null) {
+                LocalDateTime ultimoEnvio = usuario.getCodigoExpiracao()
+                        .minusMinutes(VALIDADE_CODIGO_MINUTOS);
+                if (ultimoEnvio.plusSeconds(INTERVALO_REENVIO_SEGUNDOS).isAfter(agora)) {
+                    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                            .body(Map.of("mensagem",
+                                    "Aguarde um minuto antes de solicitar um novo código."));
+                }
+            }
+
+            String codigo = String.format("%06d", random.nextInt(1_000_000));
+            usuario.definirCodigoRecuperacao(codigo, agora.plusMinutes(VALIDADE_CODIGO_MINUTOS));
+
+            emailService.enviarCodigoRecuperacao(email, codigo);
         }
 
-        Cliente cliente = opt.get();
-        boolean temCpf = cliente.getCpf() != null && !cliente.getCpf().isBlank();
-
-        Map<String, Object> resposta = new HashMap<>();
-        resposta.put("temCpf", temCpf);
-
-        return ResponseEntity.ok(resposta);
+        // Resposta idêntica com ou sem cadastro — evita enumeração de emails
+        return ResponseEntity.ok(Map.of("mensagem",
+                "Se o email estiver cadastrado, um código foi enviado."));
     }
 
-    public ResponseEntity<?> verificarIdentidade(VerificarIdentidadeRequest req) {
-        Optional<Cliente> opt = clienteRepository.findByEmail(req.getEmail());
+    @Transactional
+    public ResponseEntity<?> redefinirSenhaComCodigo(RedefinirSenhaComCodigoRequest req) {
+        Optional<Cliente> opt = clienteRepository.findByEmail(req.email());
 
-        if (opt.isEmpty()) {
+        if (opt.isEmpty() || !opt.get().getUsuario().codigoValido(req.codigo())) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Dados não conferem com nosso cadastro.");
+                    .body(Map.of("mensagem", "Código inválido ou expirado."));
         }
 
-        Cliente cliente = opt.get();
+        Usuario usuario = opt.get().getUsuario();
+        usuario.setSenha(passwordEncoder.encode(req.novaSenha()));
+        usuario.limparCodigoRecuperacao(); // uso único
 
-        LocalDate dataNascimentoReq;
-        try {
-            dataNascimentoReq = LocalDate.parse(req.getDataNascimento());
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Formato de data inválido. Use yyyy-MM-dd.");
-        }
-
-        if (!cliente.getDataNascimento().equals(dataNascimentoReq)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Dados não conferem com nosso cadastro.");
-        }
-
-        if (cliente.getCpf() != null && !cliente.getCpf().isBlank()) {
-            if (req.getCpf() == null) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Dados não conferem com nosso cadastro.");
-            }
-            String cpfBanco = cliente.getCpf().replaceAll("[^0-9]", "");
-            String cpfReq   = req.getCpf().replaceAll("[^0-9]", "");
-            if (!cpfBanco.equals(cpfReq)) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                        .body("Dados não conferem com nosso cadastro.");
-            }
-        }
-
-        String token = UUID.randomUUID().toString();
-        tokenRedefinicaoMap.put(token, cliente.getEmail());
-        tokenExpiracaoMap.put(token, System.currentTimeMillis() + TTL_MS);
-
-        return ResponseEntity.ok(new VerificarIdentidadeResponse(token));
-    }
-
-    public ResponseEntity<?> redefinirSenha(RedefinirSenhaRequest req) {
-        String token = req.getTokenRedefinicao();
-
-        if (!tokenRedefinicaoMap.containsKey(token)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Token inválido ou expirado.");
-        }
-
-        if (System.currentTimeMillis() > tokenExpiracaoMap.get(token)) {
-            tokenRedefinicaoMap.remove(token);
-            tokenExpiracaoMap.remove(token);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("Token expirado. Tente novamente.");
-        }
-
-        String email = tokenRedefinicaoMap.get(token);
-        Cliente cliente = clienteRepository.findByEmail(email).orElseThrow();
-        cliente.getUsuario().setSenha(passwordEncoder.encode(req.getNovaSenha()));
-        clienteRepository.save(cliente);
-
-        tokenRedefinicaoMap.remove(token);
-        tokenExpiracaoMap.remove(token);
-
-        return ResponseEntity.ok("Senha redefinida com sucesso.");
+        return ResponseEntity.ok(Map.of("mensagem", "Senha redefinida com sucesso."));
     }
 }

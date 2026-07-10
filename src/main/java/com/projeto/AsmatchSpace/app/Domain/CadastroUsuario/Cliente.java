@@ -109,4 +109,8 @@ public class Cliente {
     public void atualizarCpf(String cpf) {
         this.cpf = cpf;
     }
+
+    public void atualizarEmail(String email) {
+        this.email = email;
+    }
 }
