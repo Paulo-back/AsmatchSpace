@@ -36,7 +36,7 @@ public class AutenticacaoController {
 
             // ✅ Bloqueia login de contas desativadas
             if (!usuario.getCliente().getAtivo()) {
-                return ResponseEntity.status(403).body("Conta desativada. Entre em contato com o suporte.");
+                return ResponseEntity.status(403).body("Conta desativada. Entre em contato com o suporte\n asthmaspace.noreply@gmail.com\n.");
             }
 
             var tokenJWT = tokenService.gerarToken(usuario);
