@@ -104,7 +104,7 @@ public class ClienteController {
         Cliente cliente = repository.findByUsuarioId(idLogado)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
-        cliente.atualizarInformacoes(dados);
+        clienteService.atualizar(cliente, dados);
 
         return ResponseEntity.ok(new DadosDetalhamentoCliente(cliente));
     }
@@ -177,6 +177,46 @@ public class ClienteController {
         return ResponseEntity.noContent().build();
     }
 
+    @DeleteMapping("/excluir/{id}")
+    @Transactional
+    public ResponseEntity excluir(
+            @PathVariable Long id,
+            HttpServletRequest request) {
+
+        String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            return ResponseEntity.status(401).body("Token inválido ou ausente");
+        }
+
+        String token = header.substring(7);
+        Long idLogado = tokenService.getUserId(token);
+
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        String role = authentication.getAuthorities()
+                .stream().findFirst()
+                .map(GrantedAuthority::getAuthority)
+                .orElse("ROLE_USER");
+
+        // Exclusão real é exclusiva de ADMIN
+        if (!"ROLE_ADMIN".equals(role)) {
+            return ResponseEntity.status(403).build();
+        }
+
+        Cliente cliente = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        // Impede o admin de excluir a própria conta por engano
+        if (cliente.getUsuario().getId().equals(idLogado)) {
+            return ResponseEntity.status(400).body("Não é possível excluir a própria conta");
+        }
+
+        Usuario usuario = cliente.getUsuario();
+
+        repository.delete(cliente);
+        usuarioRepository.delete(usuario);
+
+        return ResponseEntity.noContent().build();
+    }
 
 
 
