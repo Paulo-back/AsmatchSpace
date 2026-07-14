@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 import java.util.stream.Collectors;
-
+import org.springframework.security.core.AuthenticationException;
 @RestControllerAdvice
 public class TratadorDeErros {
 
@@ -49,5 +49,37 @@ public class TratadorDeErros {
         );
 
         return ResponseEntity.badRequest().body(erro);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrosPadroes> tratarErroAutenticacao(
+            AuthenticationException ex,
+            HttpServletRequest request) {
+
+        ErrosPadroes erro = new ErrosPadroes(
+                LocalDateTime.now(),
+                HttpStatus.UNAUTHORIZED.value(),
+                "Falha na autenticação",
+                "Email ou senha incorretos",
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(erro);
+    }
+
+    @ExceptionHandler(ContaDesativadaException.class)
+    public ResponseEntity<ErrosPadroes> tratarContaDesativada(
+            ContaDesativadaException ex,
+            HttpServletRequest request) {
+
+        ErrosPadroes erro = new ErrosPadroes(
+                LocalDateTime.now(),
+                HttpStatus.FORBIDDEN.value(),
+                "Conta desativada",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(erro);
     }
 }

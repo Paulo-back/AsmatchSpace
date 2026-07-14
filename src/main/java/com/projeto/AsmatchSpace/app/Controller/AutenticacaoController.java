@@ -4,6 +4,7 @@ import com.projeto.AsmatchSpace.app.Domain.Usuario.DadosAutenticacao;
 import com.projeto.AsmatchSpace.app.Domain.Usuario.Usuario;
 import com.projeto.AsmatchSpace.app.Security.DadosTokenJWT;
 import com.projeto.AsmatchSpace.app.Security.TokenService;
+import com.projeto.AsmatchSpace.app.exception.ContaDesativadaException;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -27,32 +28,26 @@ public class AutenticacaoController {
 
     @PostMapping
     public ResponseEntity efetuarLogin(@RequestBody @Valid DadosAutenticacao dados) {
-        try {
-            var authenticationToken = new UsernamePasswordAuthenticationToken(
-                    dados.login(), dados.senha());
-            var authentication = manager.authenticate(authenticationToken);
+        var authenticationToken = new UsernamePasswordAuthenticationToken(
+                dados.login(), dados.senha());
+        var authentication = manager.authenticate(authenticationToken);
 
-            var usuario = (Usuario) authentication.getPrincipal();
+        var usuario = (Usuario) authentication.getPrincipal();
 
-            // ✅ Bloqueia login de contas desativadas
-            if (!usuario.getCliente().getAtivo()) {
-                return ResponseEntity.status(403).body("Conta desativada. Entre em contato com o suporte.");
-            }
-
-            var tokenJWT = tokenService.gerarToken(usuario);
-
-            String role = usuario.getAuthorities()
-                    .stream()
-                    .findFirst()
-                    .map(a -> a.getAuthority().replace("ROLE_", ""))
-                    .orElse("USER");
-
-            return ResponseEntity.ok(new DadosTokenJWT(tokenJWT, role));
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body(e.getMessage());
+        // ✅ Bloqueia login de contas desativadas
+        if (!usuario.getCliente().getAtivo()) {
+            throw new ContaDesativadaException();
         }
+
+        var tokenJWT = tokenService.gerarToken(usuario);
+
+        String role = usuario.getAuthorities()
+                .stream()
+                .findFirst()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .orElse("USER");
+
+        return ResponseEntity.ok(new DadosTokenJWT(tokenJWT, role));
     }
 
 }
