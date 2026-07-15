@@ -6,7 +6,7 @@
 [![Java](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)](#)
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-6DB33F?logo=springboot&logoColor=white)](#)
 [![Spring Security](https://img.shields.io/badge/Spring%20Security-JWT-6DB33F?logo=springsecurity&logoColor=white)](#)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white)](#)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Railway-4169E1?logo=postgresql&logoColor=white)](#)
 [![Flyway](https://img.shields.io/badge/Migrations-Flyway-CC0200?logo=flyway&logoColor=white)](#)
 [![Render](https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=black)](#)
 
@@ -31,7 +31,7 @@ API REST do **Asthma Space** — aplicativo de gestão e bem-estar respiratório
    App Android ──┐
                  ├──── REST + JWT ────▶  Spring Boot (Render)
    Painel Admin ─┘                            │
-                                              ├──▶ PostgreSQL (Neon)
+                                              ├──▶ PostgreSQL (Railway)
                                               ├──▶ OpenWeather Air Pollution API
                                               └──▶ ViaCEP
 ```
@@ -41,7 +41,7 @@ API REST do **Asthma Space** — aplicativo de gestão e bem-estar respiratório
 ## 🛠️ Stack e principais decisões
 
 - **Spring Boot** com **Spring Security**: autenticação stateless via **JWT** e senhas com **BCrypt** — sem sessão no servidor, o que permite reciclagem de instâncias no free tier sem impacto
-- **PostgreSQL** hospedado no **Neon**, com schema 100% versionado em migrações **Flyway** — recriar o banco em qualquer ambiente é executar a aplicação uma vez
+- **PostgreSQL** hospedado no **Railway**, com schema 100% versionado em migrações **Flyway** — recriar o banco em qualquer ambiente é executar a aplicação uma vez
 - **Controle de acesso por perfil**: `ADMIN` (painel web) e `USER` (app)
 - **JPA/Hibernate** com queries otimizadas em lote para respeitar os limites do free tier
 - **Geração de PDF** com OpenPDF (relatórios do diário de sintomas)
@@ -92,7 +92,7 @@ O Flyway aplica as migrações automaticamente na primeira execução, criando o
 
 - **API**: Render (free tier), com deploy automático a partir deste repositório
 - **Keep-alive**: cron-job.org faz ping a cada 5 minutos, mantendo a instância ativa e tornando cold starts raros
-- **Banco**: Neon (plano Hobby)
+- **Banco**: Railway (plano Hobby)
 
 ---
 
